@@ -1,0 +1,73 @@
+/*----------------------------------------------------------------------------------------------------
+ * Title: BatteryData.h
+ * Authors: Nathaniel VerLee, 2020
+ * Contributors: Ryan Heacock, Kurt Snieckus, 2020
+ *
+ * This file organizes the structure of data for the battery system
+ * and provides appropriate functions for accessing and modifying it
+----------------------------------------------------------------------------------------------------*/
+
+#ifndef BATDATA_H
+#define BATDATA_H
+
+//----------------------------------------------------------------------------------------------------
+// This file includes:
+#include <msp430.h>
+#include <stdbool.h>
+
+//----------------------------------------------------------------------------------------------------
+// Function Prototypes
+//----------------------------------
+// Initializations and Checks
+void Init_BMSConfig(void);
+void Init_BMSProtect(void);
+bool Check_BMSConfig(void);
+bool Check_BMSProtec(void);
+//----------------------------------
+// Status Register
+void Update_SysStat(void);
+void Set_CHG_On(void);
+void Set_CHD_DSG_On(void);
+void Set_DSG_On(void);
+void Set_CHG_DSG_Off(void);
+void Clear_SysStat(void);
+unsigned char GetByte_SysStat(void);
+bool GetBit_CCReady(void);
+bool GetBit_DeviceXRead(void);
+bool GetBit_OvrdAlert(void);
+bool GetBit_UV(void);
+bool GetBit_OV(void);
+bool GetBit_SCD(void);
+bool GetBit_OCD(void);
+//----------------------------------
+// Set CHG and DSG MOSFETs
+
+
+//----------------------------------
+// Cell voltage registers
+void Update_VCells(unsigned char Group);
+unsigned int GetNum_VCell_Cnt(unsigned char CellNum);
+float GetNum_VCell_Dec(unsigned char CellNum);
+//----------------------------------
+// Battery voltage register
+void Update_VBatt(void);
+
+
+//----------------------------------
+// Temp Sensor registers
+void Update_TSReg(void);
+unsigned int GetNum_TS_Cnt(unsigned char TempNum);
+//----------------------------------
+// Coulomb Counter registers
+void Update_CCReg(void);
+long long GetNum_CCVal_Cnt(void);
+float GetNum_CCVal_Dec(void);
+
+//----------------------------------
+// Cell balance registers
+void Set_CellBal(unsigned char Group, unsigned char Cell, bool Enable);
+
+//----------------------------------------------------------------------------------------------------
+// Global Variables
+
+#endif
