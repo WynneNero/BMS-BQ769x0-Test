@@ -14,6 +14,7 @@
 // This file includes:
 #include <msp430.h>
 #include <stdbool.h>
+#include <Constants.h>
 
 //----------------------------------------------------------------------------------------------------
 // Function Prototypes
@@ -25,15 +26,16 @@ bool Check_BMSConfig(void);
 bool Check_BMSProtec(void);
 //----------------------------------
 // Status Register
-void Update_SysStat(void);
+unsigned char Update_SysStat(void);
 void Set_CHG_On(void);
 void Set_CHD_DSG_On(void);
 void Set_DSG_On(void);
 void Set_CHG_DSG_Off(void);
 void Clear_SysStat(void);
+void Clear_CCReady(void);
 unsigned char GetByte_SysStat(void);
+bool Get_Fault(void);
 bool GetBit_CCReady(void);
-bool GetBit_DeviceXRead(void);
 bool GetBit_OvrdAlert(void);
 bool GetBit_UV(void);
 bool GetBit_OV(void);

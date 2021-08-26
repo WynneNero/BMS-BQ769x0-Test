@@ -21,26 +21,36 @@
 // Enumerations and Defines
 enum CellGroup {GroupNull=0, GroupA=1, GroupB=2, GroupC=3 }; //I dont remember what I was doing with this...
 
-enum SYS_State {DEEP_SLEEP, SYS_OFF, SYS_INIT, SYS_RUN, FAULT_DSG, FAULT_CHG, FAULT_ALL};
+enum SYS_State {DEEP_SLEEP, SYS_OFF, SYS_INIT, SYS_RUN, SYS_FAULT, FAULT_DSG, FAULT_CHG, FAULT_ALL};
 int SYS_State = SYS_INIT;
 
 enum ButtonState {NPRESSED, PRESSED, SHORT_PRESSED, LONG_PRESSED, LONG_IDLE};
 int ButtonState = NPRESSED;
+
+enum LEDMode LEDA_Mode = LED_BLINK;
+enum LEDMode LEDB_Mode = LED_OFF;
+
+
+//----------------------------------------------------------------------------------------------------
+//Flow control flag variables
+enum SYS_Wakeup {LEDBUTTONS, ALERT};
+int SYS_Wakeup = LEDBUTTONS;
+
+bool Flag_LEDBTN = false;
+bool Flag_AFEALRT = false;
+bool Flag_FLTRST = false;
+
+bool BTNA_LongPress = false;
 
 //typedef enum {PRESSED, DBOUNCE1, DBOUNCE2};
 
 //----------------------------------------------------------------------------------------------------
 //Variables and Defines
 unsigned int VCell1 = 0;
-bool BitCCReady = false;
-bool BlinkBalance = false;
-unsigned int testGIT;
 
-unsigned int Mode = 0;
-unsigned int Flag_PB60 = 0;
-
+//LEDs
 unsigned int LED_Blinks_CT = 0;
-#define LED_Blinks_LIM 5
+unsigned int LED_Blinks_LIM = 5;
 
 unsigned int Blink_Period_CT=0;
 #define LED_ON_LIM 3
@@ -50,18 +60,29 @@ unsigned int Blink_Period_CT=0;
 unsigned int Cycle_Period_CT = 0;
 #define Cycle_Period_LIM 160
 
+
+//Buttons
 unsigned int BTNPWR_CT = 0;
 #define BTN_PRESSED_LIM 3
 #define BTN_LONGPRESS_LIM 80
-
 unsigned int BTNPWR_Return = 0;
+
+//Test and temporary stuff
+unsigned int test = 0;
+
+//Counter to check ALERT pin as a backup to edge interrupt
+unsigned int SYS_Checkin_CT = 0;
+#define SYS_Checkin_LIM 16
 
 //----------------------------------------------------------------------------------------------------
 //Function prototypes
-void Sys_Init(void);
+void Init_App(void);
+
 unsigned int Button_Handler(void);
-void LED_Handler(void);
+void LED_Handler(int Mode);
 void Alert_Handler(void);
+void System_Handler(void);
+void Fault_Handler(void);
 
 //----------------------------------------------------------------------------------------------------
 int main(void)
@@ -72,29 +93,98 @@ int main(void)
     Init_I2C();
 
     // AFE and System State Initialization:
-    Sys_Init();
+    Init_App();
 
-    Set_LED_Color(LEDA, RED);
+    //Set_LED_Color(LEDA, RED);
+
+    __delay_cycles(100000);
+
+    //Update_SysStat();
+    //Clear_SysStat();
 
     TB0CTL |= MC_1;
 
     while (1)
     {
         __bis_SR_register(LPM0_bits|GIE);   // Enter LPM0 w/ interrupt
+        __delay_cycles(10);
+        //__bic_SR_register(GIE); // Disable global interrupts
 
-        //LED_Handler();
-        BTNPWR_Return = Button_Handler();
 
-        if(BTNPWR_Return==SHORT_PRESSED)
-        {   Set_LED_State(LEDA, LED_ON); }
-        if(BTNPWR_Return==LONG_PRESSED)
-        {   Set_LED_State(LEDA, LED_OFF); }
+        //------------------------------------------------------------------------------------------
+        // Main Operational State machine is called here after 0.25S Coulomb counter aquisition *OR*
+        // If a protection is triggered
+        if(Flag_AFEALRT)
+        {
+            //HERE IS ITS!!! The grandiose state machine that calls all the shots:
+            switch(SYS_State)
+            {
+            //--------------------------------------------------------------------------------
+            case SYS_INIT:
+
+                Update_SysStat();
+                Clear_SysStat();
+
+                Set_LED_Color(LEDA, GREEN);
+                LED_Blinks_LIM = 5;
+                SYS_State=SYS_RUN;
+                SYS_Checkin_CT=0;
+
+                break;
+            //--------------------------------------------------------------------------------
+            case SYS_RUN:
+                Alert_Handler();
+                SYS_Checkin_CT=0;
+
+                break;
+            //--------------------------------------------------------------------------------
+            case SYS_FAULT:
+
+                if(Flag_FLTRST)
+                {   SYS_State=SYS_INIT;     }
+                Flag_FLTRST=false;
+
+                Update_SysStat();
+                if(GetBit_CCReady())
+                {   Clear_CCReady();    }
+
+                SYS_Checkin_CT=0;
+
+                break;
+            }
+        DBUGOUT_POUT &= ~DBUGOUT_2;
+        Flag_AFEALRT=false;
+        }
+
+
+        //------------------------------------------------------------------------------------------
+        // Both button and LED state machines are called here when Timer B0 wakes
+        if(Flag_LEDBTN)
+        {
+
+            //DBUGOUT_POUT |= DBUGOUT_2;
+            __delay_cycles(10);
+
+            LED_Handler(LEDA_Mode);
+            BTNPWR_Return = Button_Handler();
+            if(BTNPWR_Return==SHORT_PRESSED)
+            {   __delay_cycles(10);     }
+            if(BTNPWR_Return==LONG_PRESSED)
+            {   Flag_FLTRST=true;       }
+            // This acts as a backup if for some reason the system misses the ALERT interrupt,
+            // also convenient when it is masked during debugging:
+            if((I2C_ALRT1_PIN|=I2C_ALRT1) && (SYS_Checkin_CT>SYS_Checkin_LIM))
+            {   Flag_AFEALRT = true; }
+
+        DBUGOUT_POUT &= ~DBUGOUT_1;
+        Flag_LEDBTN = false;
+        }
 
     }
 }
 
 //----------------------------------------------------------------------------------------------------
-void Sys_Init(void)
+void Init_App(void)
 {
     WDTCTL = WDTPW | WDTHOLD;
 
@@ -126,8 +216,6 @@ void Sys_Init(void)
     Set_ChargePump_On();
 
     __delay_cycles(750000);
-
-
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -176,43 +264,75 @@ unsigned int Button_Handler(void)
 }
 
 //----------------------------------------------------------------------------------------------------
-void LED_Handler(void)
+void LED_Handler(Mode)
+{
+    switch(Mode)
+    {
+    case LED_BLINK:
+        if(Blink_Period_CT>LED_ON_LIM)
+        {
+            //Set_LEDA_Off();
+            Set_LED_State(LEDA, LED_OFF);
+        }
+
+        if(LED_Blinks_CT<LED_Blinks_LIM)
+        {   if(Blink_Period_CT>Blink_Period_LIM)
+            {   //Set_LEDA_Red();
+                Set_LED_State(LEDA, LED_ON);
+                Blink_Period_CT=0;
+                LED_Blinks_CT++;    }
+        }
+
+        if(Cycle_Period_CT>Cycle_Period_LIM)
+        {   //Set_LEDA_Red();
+            Set_LED_State(LEDA, LED_ON);
+            Cycle_Period_CT=0;
+            LED_Blinks_CT=0;        }
+        break;
+
+    case LED_ON:
+        Set_LED_State(LEDA, LED_ON);
+        break;
+
+    case LED_OFF:
+        Set_LED_State(LEDA, LED_OFF);
+        break;
+    }
+
+}
+
+//----------------------------------------------------------------------------------------------------
+void Fault_Handler(void)
 {
 
-    if(Blink_Period_CT>LED_ON_LIM)
-    {
-        //Set_LEDA_Off();
-        Set_LED_State(LEDA, LED_OFF);
-    }
-
-    if(LED_Blinks_CT<LED_Blinks_LIM)
-    {
-
-        if(Blink_Period_CT>Blink_Period_LIM)
-        {
-            //Set_LEDA_Red();
-            Set_LED_State(LEDA, LED_ON);
-            Blink_Period_CT=0;
-            LED_Blinks_CT++;
-        }
-    }
-
-    if(Cycle_Period_CT>Cycle_Period_LIM)
-    {
-        //Set_LEDA_Red();
-        Set_LED_State(LEDA, LED_ON);
-        Cycle_Period_CT=0;
-        LED_Blinks_CT=0;
-    }
 }
 
 //----------------------------------------------------------------------------------------------------
 //Handle incoming alerts on the I2C Interrupt line
-void Alert_Handler(void)
+void Alert_Handler()
 {
+    Update_SysStat();
 
+    test = Get_Fault();
+
+    if(Get_Fault())
+    {
+        SYS_State=SYS_FAULT;
+        Set_LED_Color(LEDA, RED);
+
+        if(GetBit_UV())
+        {   LED_Blinks_LIM = 5;     }
+        if(GetBit_OV())
+        {   LED_Blinks_LIM = 4;     }
+        if(GetBit_SCD())
+        {   LED_Blinks_LIM = 3;     }
+        if(GetBit_OCD())
+        {   LED_Blinks_LIM = 2;     }
+    }
+
+    if(GetBit_CCReady())
+    {   Clear_CCReady();    }
 }
-
 
 
 //----------------------------------------------------------------------------------------------------
@@ -221,6 +341,8 @@ void Alert_Handler(void)
 __interrupt void Port_1(void)
 {
     P1IFG &= ~BIT1;                             // Clear P1.1 IFG
+    DBUGOUT_POUT |= DBUGOUT_2;
+    Flag_AFEALRT=true;
     __bic_SR_register_on_exit(LPM0_bits);       // Exit LPM3
 }
 
@@ -244,10 +366,11 @@ __interrupt void TIMER0_B1_ISR(void)
         case TB0IV_NONE:
             break;                               // No interrupt
         case TB0IV_TBCCR1:
-            //Flag_PB60=Flag_PB60+1;
-            //LED_Period_CT++;
+            DBUGOUT_POUT |= DBUGOUT_1;
             Blink_Period_CT++;
             Cycle_Period_CT++;
+            SYS_Checkin_CT++;
+            Flag_LEDBTN = true;
             __bic_SR_register_on_exit(LPM0_bits);
             break;
         case TB0IV_TBCCR2:

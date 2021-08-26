@@ -19,7 +19,7 @@
 // Enumerations
 enum LEDs {LEDA, LEDB};
 enum ColorState {RED, YELLOW, GREEN};
-enum LEDMode {LED_OFF, LED_ON};
+enum LEDMode {LED_OFF, LED_BLINK, LED_ON};
 
 //----------------------------------------------------------------------------------------------------
 // Function Prototypes
@@ -46,8 +46,9 @@ void Set_LED_State(int LED, int State);
 
 // GPIO Mapping for I2C Alert 1 and 2
 #define I2C_ALRT1_POUT P1OUT
+#define I2C_ALRT1_PIN  P1IN
 #define I2C_ALRT1_PDIR P1DIR
-#define I2C_ALRT1_PREN P2REN
+#define I2C_ALRT1_PREN P1REN
 #define I2C_ALRT1 BIT1
 
 #define I2C_ALRT2_POUT P2OUT
@@ -97,5 +98,11 @@ void Set_LED_State(int LED, int State);
 #define GTDRV_BATMONEN BIT0
 #define GTDRV_CPEN BIT1
 #define GTDRV_PCHG BIT2
+
+// GPIO Mappings for Debug Pins:
+#define DBUGOUT_POUT P4OUT
+#define DBUGOUT_PDIR P4DIR
+#define DBUGOUT_1 BIT4
+#define DBUGOUT_2 BIT5
 
 #endif

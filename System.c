@@ -12,6 +12,7 @@
 #include <msp430.h>
 #include <stdbool.h>
 #include <System.h>
+#include <Constants.h>
 
 //----------------------------------------------------------------------------------------------------
 
@@ -31,13 +32,18 @@ void Init_GPIO()
 
     // Configure Port 1 GPIO, Interrupt on P1.1:
     I2C_ALRT1_POUT &= ~I2C_ALRT1;                         // Clear P1.4 output latch for a defined power-on state
-    I2C_ALRT1_PDIR &= I2C_ALRT1;                          // Set P1.4 to input
-    I2C_ALRT1_POUT |= I2C_ALRT1;                          // Pull up direction Don't Care
-    I2C_ALRT1_PREN &= I2C_ALRT1;                          // P1.1 pull-up register disable
+    I2C_ALRT1_PDIR &= ~I2C_ALRT1;                          // Set P1.4 to input
+    I2C_ALRT1_POUT &= ~I2C_ALRT1;                          // Pull up direction Don't Care
+    I2C_ALRT1_PREN |= I2C_ALRT1;                          // P1.1 pull-up register disable
 
-    //P1IES &= ~BIT1;                         // P1.1 Interrupt from Low-to-High
-    //P1IE |= BIT1;                           // P1.1 Interrupt enabled
-    //P1IFG &= ~BIT1;                         // P1.1 IFG cleared
+    P1IES &= ~BIT1;                         // P1.1 Interrupt from Low-to-High
+    P1IE |= BIT1;                           // P1.1 Interrupt enabled
+    P1IFG &= ~BIT1;                         // P1.1 IFG cleared
+
+    DBUGOUT_POUT &= ~DBUGOUT_1;
+    DBUGOUT_PDIR |= DBUGOUT_1;
+    DBUGOUT_POUT &= ~DBUGOUT_2;
+    DBUGOUT_PDIR |= DBUGOUT_2;
 
     Setup_Buttons();
     Setup_LEDs();
@@ -112,7 +118,7 @@ void Set_LED_Color(int LED, int Color)
         {
             case RED:
                 LEDB_Color = RED;
-                break; // If this isnt here it jumps to each case??
+                break;
             case YELLOW:
                 LEDB_Color = YELLOW;
                 break;

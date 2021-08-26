@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include "Constants.h"
 #include "I2C_Handler.h"
+#include "BatteryData.h"
 
 //----------------------------------------------------------------------------------------------------
 // Constants
@@ -28,15 +29,6 @@ enum CellGroup {GroupNull=0, GroupA=1, GroupB=2, GroupC=3 };
 unsigned char StatReg;
 unsigned int CellADCVals[15];
 unsigned char CellIndex=0;
-
-//----------------------------------------------------------------------------------------------------
-// Configure the BQ769x0 in the desired manner and confirm
-void Init_BMSConfig(void)
-{
-    I2CTXBuf[0]=SETUP_SYS_CTRL2;
-    I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);           //Enable Coulomb Counting and Alert
-    I2C_Read(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);            //Confirm Proper Sys Config
-}
 
 void Set_CHG_On(void)
 {
@@ -61,10 +53,11 @@ void Set_CHG_DSG_Off(void)
 
 //----------------------------------------------------------------------------------------------------
 // Update Status Register
-void Update_SysStat(void)
+unsigned char Update_SysStat(void)
 {
     I2C_Read(I2C_BQ769xxADDR, REG_SYS_STAT, 1);
     StatReg = I2CRXBuf[0];
+    return StatReg;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -77,16 +70,55 @@ void Clear_SysStat(void)
 }
 
 //----------------------------------------------------------------------------------------------------
-bool GetBit_CCReady(void)
+// Clear just the CCReady bit in the Status Register by setting only that bit to 1
+// (Which will actually clear it, somewhat confusing)
+void Clear_CCReady(void)
 {
-    return StatReg |= BIT7;
+    I2CTXBuf[0]=BIT7;
+    I2C_Write(I2C_BQ769xxADDR, REG_SYS_STAT, 1);     //Clear the System Status Register
 }
 
 //----------------------------------------------------------------------------------------------------
-unsigned char GetByte_SysStat()
+// Configure the BQ769x0 in the desired manner and confirm
+void Init_BMSConfig(void)
 {
-    return StatReg;
+    I2CTXBuf[0]=SETUP_SYS_CTRL2;
+    I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);           //Enable Coulomb Counting and Alert
+    I2C_Read(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);            //Confirm Proper Sys Config
+
+    Update_SysStat();
+    Clear_SysStat();
 }
+
+//----------------------------------------------------------------------------------------------------
+bool GetBit_CCReady(void)
+{   return (StatReg & BIT7) != 0;   }
+
+//----------------------------------------------------------------------------------------------------
+bool Get_Fault(void)
+{   return ((StatReg & (BIT5+BIT3+BIT2+BIT1+BIT0)) != 0);     }
+//wow, the parents around statreg and the bits matters....
+
+//----------------------------------------------------------------------------------------------------
+bool GetBit_OV(void)
+{   return (StatReg & BIT2) != 0;   }
+
+//----------------------------------------------------------------------------------------------------
+bool GetBit_UV(void)
+{   return (StatReg & BIT3) != 0;   }
+
+//----------------------------------------------------------------------------------------------------
+bool GetBit_OCD(void)
+{   return (StatReg & BIT0) != 0;   }
+
+//----------------------------------------------------------------------------------------------------
+bool GetBit_SCD(void)
+{   return (StatReg & BIT1) != 0;   }
+
+
+//----------------------------------------------------------------------------------------------------
+unsigned char GetByte_SysStat()
+{   return StatReg; }
 
 //----------------------------------------------------------------------------------------------------
 // Update Cell Voltages from I2C Buffer
