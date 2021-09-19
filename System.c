@@ -16,8 +16,8 @@
 
 //----------------------------------------------------------------------------------------------------
 
-static enum ColorState LEDA_Color = RED;
-static enum ColorState LEDB_Color = RED;
+static ColorState LEDA_Color = RED;
+static ColorState LEDB_Color = RED;
 
 //----------------------------------------------------------------------------------------------------
 

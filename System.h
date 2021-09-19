@@ -18,7 +18,7 @@
 //----------------------------------------------------------------------------------------------------
 // Enumerations
 enum LEDs {LEDA, LEDB};
-enum ColorState {RED, YELLOW, GREEN};
+typedef enum {RED, YELLOW, GREEN} ColorState;
 enum LEDMode {LED_OFF, LED_BLINK, LED_ON};
 
 //----------------------------------------------------------------------------------------------------

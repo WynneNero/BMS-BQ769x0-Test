@@ -53,8 +53,8 @@ unsigned int LED_Blinks_CT = 0;
 unsigned int LED_Blinks_LIM = 5;
 
 unsigned int Blink_Period_CT=0;
-#define LED_ON_LIM 3
-#define LED_OFF_LIM 9
+#define LED_ON_LIM 1
+#define LED_OFF_LIM 11
 #define Blink_Period_LIM 12
 
 unsigned int Cycle_Period_CT = 0;
@@ -298,7 +298,6 @@ void LED_Handler(Mode)
         Set_LED_State(LEDA, LED_OFF);
         break;
     }
-
 }
 
 //----------------------------------------------------------------------------------------------------
