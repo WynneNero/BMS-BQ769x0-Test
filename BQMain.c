@@ -28,7 +28,7 @@ enum ButtonState {NPRESSED, PRESSED, SHORT_PRESSED, LONG_PRESSED, LONG_IDLE};
 int ButtonState = NPRESSED;
 
 enum LEDMode LEDA_Mode = LED_BLINK;
-enum LEDMode LEDB_Mode = LED_OFF;
+//enum LEDMode LEDB_Mode = LED_OFF;
 
 
 //----------------------------------------------------------------------------------------------------
@@ -49,6 +49,7 @@ bool BTNA_LongPress = false;
 unsigned int VCell1 = 0;
 
 //LEDs
+Color_t LED_Color = GREEN;
 unsigned int LED_Blinks_CT = 0;
 unsigned int LED_Blinks_LIM = 5;
 
@@ -60,6 +61,10 @@ unsigned int Blink_Period_CT=0;
 unsigned int Cycle_Period_CT = 0;
 #define Cycle_Period_LIM 160
 
+
+//static const Led_t LEDA = {(volatile unsigned char*)P4_BASE+OFS_P4OUT, 1, 0};
+static const Led_t LEDA = {&P2OUT, 1, 0};
+static const Led_t LEDB = {&P4OUT, 1, 0};
 
 //Buttons
 unsigned int BTNPWR_CT = 0;
@@ -125,7 +130,8 @@ int main(void)
                 Update_SysStat();
                 Clear_SysStat();
 
-                Set_LED_Color(LEDA, GREEN);
+                Set_Led_State(&LEDA, GREEN);
+                LED_Color=GREEN;
                 LED_Blinks_LIM = 5;
                 SYS_State=SYS_RUN;
                 SYS_Checkin_CT=0;
@@ -190,10 +196,10 @@ void Init_App(void)
 
     //Blink Green LED60 on system initialization:
     //Set_LEDA_Green();
-    Set_LED_Color(LEDA, GREEN);
-    Set_LED_State(LEDA, LED_ON);
+    //Set_LED_Color(LEDA, GREEN);
+    Set_Led_State(&LEDA, GREEN);
     __delay_cycles(100000);
-    Set_LED_State(LEDA, LED_OFF);
+    Set_Led_State(&LEDA, OFF);
     __delay_cycles(100000);
 
     //Setup for BQ769x0:
@@ -202,10 +208,13 @@ void Init_App(void)
     __delay_cycles(100000);
 
     //Blink Green LED60 again on AFE config:
-    Set_LED_State(LEDA, LED_ON);
+    Set_Led_State(&LEDA, GREEN);
     __delay_cycles(100000);
-    Set_LED_State(LEDA, LED_OFF);
+    Set_Led_State(&LEDA, OFF);
     __delay_cycles(100000);
+
+
+
 
     // Configure Timer_A for button debounce
     TB0CTL = TBSSEL_1 | TBCLR | TBIE;      // ACLK, count mode, clear TBR, enable interrupt
@@ -272,30 +281,30 @@ void LED_Handler(Mode)
         if(Blink_Period_CT>LED_ON_LIM)
         {
             //Set_LEDA_Off();
-            Set_LED_State(LEDA, LED_OFF);
+            Set_Led_State(&LEDA, OFF);
         }
 
         if(LED_Blinks_CT<LED_Blinks_LIM)
         {   if(Blink_Period_CT>Blink_Period_LIM)
             {   //Set_LEDA_Red();
-                Set_LED_State(LEDA, LED_ON);
+                Set_Led_State(&LEDA, LED_Color);
                 Blink_Period_CT=0;
                 LED_Blinks_CT++;    }
         }
 
         if(Cycle_Period_CT>Cycle_Period_LIM)
         {   //Set_LEDA_Red();
-            Set_LED_State(LEDA, LED_ON);
+            Set_Led_State(&LEDA, LED_Color);
             Cycle_Period_CT=0;
             LED_Blinks_CT=0;        }
         break;
 
     case LED_ON:
-        Set_LED_State(LEDA, LED_ON);
+        Set_Led_State(&LEDA,   LED_Color);
         break;
 
     case LED_OFF:
-        Set_LED_State(LEDA, LED_OFF);
+        Set_Led_State(&LEDA, OFF);
         break;
     }
 }
@@ -317,7 +326,8 @@ void Alert_Handler()
     if(Get_Fault())
     {
         SYS_State=SYS_FAULT;
-        Set_LED_Color(LEDA, RED);
+        Set_Led_State(&LEDA, RED);
+        LED_Color=RED;
 
         if(GetBit_UV())
         {   LED_Blinks_LIM = 5;     }

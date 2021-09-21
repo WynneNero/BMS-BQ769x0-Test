@@ -14,11 +14,56 @@
 // This file includes:
 #include <msp430.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 //----------------------------------------------------------------------------------------------------
 // Enumerations
-enum LEDs {LEDA, LEDB};
-typedef enum {RED, YELLOW, GREEN} ColorState;
+//typedef enum {RED, YELLOW, GREEN} ColorState;
+
+//----------------------------------------------------------------------------------------------------
+//LED Feedback Colors
+typedef enum {OFF, RED, YELLOW, GREEN} Color_t;
+
+//----------------------------------------------------------------------------------------------------
+// LED State (0 = off, 1 = on)
+typedef struct
+{
+    uint8_t red;
+    uint8_t green;
+} LedState_t;
+
+//----------------------------------------------------------------------------------------------------
+//
+typedef enum
+{
+    LED_MODE_OFF,
+    LED_MODE_ON,
+    LED_MODE_BLINK
+} LEDMode_t;
+
+//----------------------------------------------------------------------------------------------------
+//
+typedef struct
+{
+    uint8_t mode;
+    uint8_t numBlinks;
+    uint8_t LED_Blinks_CT;
+} LedMode_t;
+
+
+
+//----------------------------------------------------------------------------------------------------
+// LED Control Struct
+typedef struct
+{
+    volatile unsigned char *pxout;
+    unsigned int redPin;
+    unsigned int greenPin;
+} Led_t;
+
+
+
+
 enum LEDMode {LED_OFF, LED_BLINK, LED_ON};
 
 //----------------------------------------------------------------------------------------------------
@@ -32,8 +77,13 @@ void Setup_GateDriver(void);
 void Set_ChargePump_On(void);
 void Set_ChargePump_Off(void);
 
-void Set_LED_Color(int LED, int Color);
-void Set_LED_State(int LED, int State);
+//void Set_LED_Color(int LED, int Color);
+//void Set_LED_State(int LED, int State);
+void Register_Bit_Set(volatile unsigned char *reg,
+                      unsigned int bit,
+                      unsigned int value);
+
+void Set_Led_State(const Led_t *led, Color_t color);
 
 
 //----------------------------------------------------------------------------------------------------

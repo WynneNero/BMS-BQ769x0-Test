@@ -13,14 +13,42 @@
 #include <stdbool.h>
 #include <System.h>
 #include <Constants.h>
+#include <stdint.h>
 
 //----------------------------------------------------------------------------------------------------
 
-static ColorState LEDA_Color = RED;
-static ColorState LEDB_Color = RED;
 
 //----------------------------------------------------------------------------------------------------
+// Lookup table to convert `Color_t` to `LedState_t`
+static const LedState_t ColorMap[4] =
+{
+    {0, 0}, // Off
+    {1, 0}, // Red
+    {1, 1}, // Yellow
+    {0, 1} // Green
+};
 
+
+/**
+ * Set a bit within a memory register
+ */
+void Register_Bit_Set(volatile unsigned char *reg,
+                      unsigned int bit,
+                      unsigned int value)
+{
+    if (value)
+    {   *reg |= 1 << bit;       }
+    else
+    {   *reg &= ~(1 << bit);    }
+}
+
+
+void Set_Led_State(const Led_t *led, Color_t color)
+{
+    const LedState_t *state = &ColorMap[color];
+    Register_Bit_Set(led->pxout, led->redPin, state->red);
+    Register_Bit_Set(led->pxout, led->greenPin, state->green);
+}
 
 
 //----------------------------------------------------------------------------------------------------
@@ -94,6 +122,7 @@ void Setup_Buttons(void)
     //BTNPWR_IFG &= ~BTNPWR;           // Button Pin interrupt flag cleared
 }
 
+/*
 //----------------------------------------------------------------------------------------------------
 void Set_LED_Color(int LED, int Color)
 {
@@ -186,6 +215,7 @@ void Set_LED_State(int LED, int State)
         break;
     }
 }
+*/
 
 void Setup_GateDriver(void)
 {
