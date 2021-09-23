@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------------------------------
  * Title: System.c
- * Authors: Nathaniel VerLee, 2020-2021
+ * Authors: Nathaniel VerLee, Matthew Pennock, 2020-2021
  * Contributors: Ryan Heacock, Kurt Snieckus, Matthew Pennock, 2020-2021
  *
  * This file organizes the general system features like LEDs, buttons, Temp Sensors, Etc
@@ -14,27 +14,27 @@
 #include <System.h>
 #include <Constants.h>
 #include <stdint.h>
-
 //----------------------------------------------------------------------------------------------------
 
+//----------------------------------------------------------------------------------------------------
+// Constants
+const unsigned int Cycle_LIM        =160;
+const unsigned int Blink_ONLIM      =1;
+const unsigned int Blink_PeriodLIM  =12;
 
 //----------------------------------------------------------------------------------------------------
-// Lookup table to convert `Color_t` to `LedState_t`
-static const LedState_t ColorMap[4] =
+//Lookup table to convert `BiColor_t` to `ColorState_t`
+static const ColorState_t ColorMap[4] =
 {
-    {0, 0}, // Off
+    {0, 0}, // Red
     {1, 0}, // Red
     {1, 1}, // Yellow
-    {0, 1} // Green
+    {0, 1}, // Green
 };
 
-
-/**
- * Set a bit within a memory register
- */
-void Register_Bit_Set(volatile unsigned char *reg,
-                      unsigned int bit,
-                      unsigned int value)
+//----------------------------------------------------------------------------------------------------
+// Set a bit within a memory register
+void Register_Bit_Set(volatile unsigned char *reg, unsigned int bit, unsigned int value)
 {
     if (value)
     {   *reg |= 1 << bit;       }
@@ -42,12 +42,74 @@ void Register_Bit_Set(volatile unsigned char *reg,
     {   *reg &= ~(1 << bit);    }
 }
 
-
-void Set_Led_State(const Led_t *led, Color_t color)
+//----------------------------------------------------------------------------------------------------
+// Modify the LED mode - this actually needs to then do something?
+void Set_LED_Static (BiColorLED_t *led, BiColor_t color)
 {
-    const LedState_t *state = &ColorMap[color];
-    Register_Bit_Set(led->pxout, led->redPin, state->red);
-    Register_Bit_Set(led->pxout, led->greenPin, state->green);
+    led->LED_Mode = LEDMode_STATIC;
+
+    const ColorState_t *state = &ColorMap[color];
+    Register_Bit_Set(led->PXOUT, led->Pin_Red, state->red);
+    Register_Bit_Set(led->PXOUT, led->Pin_Green, state->green);
+
+    return;
+}
+
+//----------------------------------------------------------------------------------------------------
+// This definitly needs to do something, which may or may not interact with the handler function
+// if the LED is set to blink
+void Set_LED_Blinks (BiColorLED_t *led, BiColor_t color, unsigned int blinks)
+{
+    led->LED_Mode = LEDMode_BLINK;
+    led->LED_Color = color;
+    led->Blinks_LIM = blinks;
+}
+
+//----------------------------------------------------------------------------------------------------
+void LED_BlinkHandler(BiColorLED_t *led, unsigned int cycleCT)
+{
+
+    const ColorState_t *state = &ColorMap[led->LED_Color];
+
+    switch(led->LED_Mode)
+    {
+    case LEDMode_BLINK:
+
+
+        //If the blink period counter is greater than the on time limit, turn off the LED:
+        if(led->Blink_PeriodCT>Blink_ONLIM)
+        {
+            //Turn off the LED (Set both pins to off):
+            Register_Bit_Set(led->PXOUT, led->Pin_Red, 0);
+            Register_Bit_Set(led->PXOUT, led->Pin_Green, 0);
+        }
+        //If the blink count is less than the number of blinks
+        if(led->Blinks_CT<led->Blinks_LIM)
+        {
+            //And if the period count is greater than the limit
+            if(led->Blink_PeriodCT>Blink_PeriodLIM)
+            {
+                //Set the LED
+                Register_Bit_Set(led->PXOUT, led->Pin_Red, state->red);
+                Register_Bit_Set(led->PXOUT, led->Pin_Green, state->green);
+                //Reset the period count and increment the number of blinks
+                led->Blink_PeriodCT=0;
+                led->Blinks_CT++;
+            }
+        }
+
+        if(cycleCT>Cycle_LIM)
+        {
+            Register_Bit_Set(led->PXOUT, led->Pin_Red, state->red);
+            Register_Bit_Set(led->PXOUT, led->Pin_Green, state->green);
+            led->Blinks_CT=0;
+        }
+
+        break;
+
+    case LEDMode_STATIC:
+        break;
+    }
 }
 
 

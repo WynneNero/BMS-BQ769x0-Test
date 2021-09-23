@@ -1,7 +1,7 @@
 /*----------------------------------------------------------------------------------------------------
  * Project: BMSHP Controller
  * Title: Main.c
- * Authors: Nathaniel VerLee, 2020-2021
+ * Authors: Nathaniel VerLee, Matthew Pennock, 2020-2021
  * Contributors: Ryan Heacock, Kurt Snieckus, Matthew Pennock, 2020-2021
  *
  * This file takes care of all I2C communication including initializations, reading and writing,
@@ -27,9 +27,6 @@ int SYS_State = SYS_INIT;
 enum ButtonState {NPRESSED, PRESSED, SHORT_PRESSED, LONG_PRESSED, LONG_IDLE};
 int ButtonState = NPRESSED;
 
-enum LEDMode LEDA_Mode = LED_BLINK;
-//enum LEDMode LEDB_Mode = LED_OFF;
-
 
 //----------------------------------------------------------------------------------------------------
 //Flow control flag variables
@@ -46,25 +43,24 @@ bool BTNA_LongPress = false;
 
 //----------------------------------------------------------------------------------------------------
 //Variables and Defines
-unsigned int VCell1 = 0;
 
 //LEDs
-Color_t LED_Color = GREEN;
-unsigned int LED_Blinks_CT = 0;
-unsigned int LED_Blinks_LIM = 5;
+unsigned int LED_Blinks_CT      =0;
+unsigned int LED_Blinks_LIM     =5;
 
-unsigned int Blink_Period_CT=0;
-#define LED_ON_LIM 1
-#define LED_OFF_LIM 11
-#define Blink_Period_LIM 12
+unsigned int Blink_Period_CT    =0;
+#define LED_ON_LIM              1
+#define LED_OFF_LIM             11
+#define Blink_Period_LIM        12
 
-unsigned int Cycle_Period_CT = 0;
-#define Cycle_Period_LIM 160
+unsigned int Cycle_Period_CT    =0;
+#define Cycle_Period_LIM        160
 
+unsigned int Cycle_CT           =0;
 
-//static const Led_t LEDA = {(volatile unsigned char*)P4_BASE+OFS_P4OUT, 1, 0};
-static const Led_t LEDA = {&P2OUT, 1, 0};
-static const Led_t LEDB = {&P4OUT, 1, 0};
+// LEDName = PXOUT, Pin_Red, Pin_Green, LED_Mode, LED_Color, Blinks_LIM, Blinks_CT
+static BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
+static BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
 
 //Buttons
 unsigned int BTNPWR_CT = 0;
@@ -84,7 +80,8 @@ unsigned int SYS_Checkin_CT = 0;
 void Init_App(void);
 
 unsigned int Button_Handler(void);
-void LED_Handler(int Mode);
+//void LED_Handler(int Mode);
+
 void Alert_Handler(void);
 void System_Handler(void);
 void Fault_Handler(void);
@@ -130,9 +127,8 @@ int main(void)
                 Update_SysStat();
                 Clear_SysStat();
 
-                Set_Led_State(&LEDA, GREEN);
-                LED_Color=GREEN;
-                LED_Blinks_LIM = 5;
+                Set_LED_Blinks(&LEDA, BiColor_GREEN, 5);
+
                 SYS_State=SYS_RUN;
                 SYS_Checkin_CT=0;
 
@@ -171,7 +167,12 @@ int main(void)
             //DBUGOUT_POUT |= DBUGOUT_2;
             __delay_cycles(10);
 
-            LED_Handler(LEDA_Mode);
+            //Put the new LED handler here
+            LED_BlinkHandler(&LEDA, Cycle_Period_CT);
+
+            if(Cycle_Period_CT>Cycle_Period_LIM)
+            {   Cycle_Period_CT=0;  }
+
             BTNPWR_Return = Button_Handler();
             if(BTNPWR_Return==SHORT_PRESSED)
             {   __delay_cycles(10);     }
@@ -195,11 +196,9 @@ void Init_App(void)
     WDTCTL = WDTPW | WDTHOLD;
 
     //Blink Green LED60 on system initialization:
-    //Set_LEDA_Green();
-    //Set_LED_Color(LEDA, GREEN);
-    Set_Led_State(&LEDA, GREEN);
+    Set_LED_Static(&LEDA, BiColor_GREEN);
     __delay_cycles(100000);
-    Set_Led_State(&LEDA, OFF);
+    Set_LED_Static(&LEDA, BiColor_OFF);
     __delay_cycles(100000);
 
     //Setup for BQ769x0:
@@ -208,9 +207,9 @@ void Init_App(void)
     __delay_cycles(100000);
 
     //Blink Green LED60 again on AFE config:
-    Set_Led_State(&LEDA, GREEN);
+    Set_LED_Static(&LEDA, BiColor_GREEN);
     __delay_cycles(100000);
-    Set_Led_State(&LEDA, OFF);
+    Set_LED_Static(&LEDA, BiColor_OFF);
     __delay_cycles(100000);
 
 
@@ -272,7 +271,7 @@ unsigned int Button_Handler(void)
     return NPRESSED;
 }
 
-//----------------------------------------------------------------------------------------------------
+/*----------------------------------------------------------------------------------------------------
 void LED_Handler(Mode)
 {
     switch(Mode)
@@ -281,33 +280,36 @@ void LED_Handler(Mode)
         if(Blink_Period_CT>LED_ON_LIM)
         {
             //Set_LEDA_Off();
-            Set_Led_State(&LEDA, OFF);
+            Set_Led_State(&LEDA, &LEDA_Thing, COLOR_OFF);
         }
 
         if(LED_Blinks_CT<LED_Blinks_LIM)
         {   if(Blink_Period_CT>Blink_Period_LIM)
             {   //Set_LEDA_Red();
-                Set_Led_State(&LEDA, LED_Color);
+                Set_Led_State(&LEDA, &LEDA_Thing, LED_Color);
                 Blink_Period_CT=0;
                 LED_Blinks_CT++;    }
         }
 
         if(Cycle_Period_CT>Cycle_Period_LIM)
         {   //Set_LEDA_Red();
-            Set_Led_State(&LEDA, LED_Color);
+            Set_Led_State(&LEDA, &LEDA_Thing, LED_Color);
             Cycle_Period_CT=0;
             LED_Blinks_CT=0;        }
         break;
 
     case LED_ON:
-        Set_Led_State(&LEDA,   LED_Color);
+        Set_Led_State(&LEDA, &LEDA_Thing, LED_Color);
         break;
 
     case LED_OFF:
-        Set_Led_State(&LEDA, OFF);
+        Set_Led_State(&LEDA, &LEDA_Thing, COLOR_OFF);
         break;
     }
-}
+}*/
+
+
+
 
 //----------------------------------------------------------------------------------------------------
 void Fault_Handler(void)
@@ -326,17 +328,15 @@ void Alert_Handler()
     if(Get_Fault())
     {
         SYS_State=SYS_FAULT;
-        Set_Led_State(&LEDA, RED);
-        LED_Color=RED;
 
         if(GetBit_UV())
-        {   LED_Blinks_LIM = 5;     }
+        {   Set_LED_Blinks(&LEDA, BiColor_RED, 5);  }
         if(GetBit_OV())
-        {   LED_Blinks_LIM = 4;     }
+        {   Set_LED_Blinks(&LEDA, BiColor_RED, 4);  }
         if(GetBit_SCD())
-        {   LED_Blinks_LIM = 3;     }
+        {   Set_LED_Blinks(&LEDA, BiColor_RED, 3);  }
         if(GetBit_OCD())
-        {   LED_Blinks_LIM = 2;     }
+        {   Set_LED_Blinks(&LEDA, BiColor_RED, 2);  }
     }
 
     if(GetBit_CCReady())
@@ -377,6 +377,7 @@ __interrupt void TIMER0_B1_ISR(void)
         case TB0IV_TBCCR1:
             DBUGOUT_POUT |= DBUGOUT_1;
             Blink_Period_CT++;
+            LEDA.Blink_PeriodCT++;
             Cycle_Period_CT++;
             SYS_Checkin_CT++;
             Flag_LEDBTN = true;

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------------------------------
  * Title: System.h
- * Authors: Nathaniel VerLee, 2020-2021
+ * Authors: Nathaniel VerLee, Matthew Pennock, 2020-2021
  * Contributors: Ryan Heacock, Kurt Snieckus, Matthew Pennock, 2020-2021
  *
  * This file organizes the general system features like LEDs, buttons, Temp Sensors, Etc
@@ -21,50 +21,48 @@
 //typedef enum {RED, YELLOW, GREEN} ColorState;
 
 //----------------------------------------------------------------------------------------------------
-//LED Feedback Colors
-typedef enum {OFF, RED, YELLOW, GREEN} Color_t;
+// Possible Modes a BiColor LED can be operating in
+typedef enum
+{
+    LEDMode_STATIC,
+    LEDMode_BLINK
+} LEDMode_t;
 
 //----------------------------------------------------------------------------------------------------
-// LED State (0 = off, 1 = on)
+// Enumerations for types of colors a RG BiColor LED can be
+typedef enum
+{
+    BiColor_OFF,
+    BiColor_RED,
+    BiColor_YELLOW,
+    BiColor_GREEN
+} BiColor_t;
+
+//----------------------------------------------------------------------------------------------------
+// ColorState struct holds the value for each LED pin based on the color chosen
 typedef struct
 {
     uint8_t red;
     uint8_t green;
-} LedState_t;
+} ColorState_t;
 
 //----------------------------------------------------------------------------------------------------
-//
-typedef enum
-{
-    LED_MODE_OFF,
-    LED_MODE_ON,
-    LED_MODE_BLINK
-} LEDMode_t;
-
-//----------------------------------------------------------------------------------------------------
-//
+// Struct for holding all data needed about a specific BiColor LED
 typedef struct
 {
-    uint8_t mode;
-    uint8_t numBlinks;
-    uint8_t LED_Blinks_CT;
-} LedMode_t;
+    //Data for all modes:
+    volatile unsigned char *PXOUT;
+    unsigned int Pin_Red;
+    unsigned int Pin_Green;
+    LEDMode_t LED_Mode;
 
+    //Data for Blink Mode:
+    BiColor_t LED_Color;
+    unsigned int Blink_PeriodCT;
+    unsigned int Blinks_LIM;
+    unsigned int Blinks_CT;
 
-
-//----------------------------------------------------------------------------------------------------
-// LED Control Struct
-typedef struct
-{
-    volatile unsigned char *pxout;
-    unsigned int redPin;
-    unsigned int greenPin;
-} Led_t;
-
-
-
-
-enum LEDMode {LED_OFF, LED_BLINK, LED_ON};
+} BiColorLED_t;
 
 //----------------------------------------------------------------------------------------------------
 // Function Prototypes
@@ -77,14 +75,10 @@ void Setup_GateDriver(void);
 void Set_ChargePump_On(void);
 void Set_ChargePump_Off(void);
 
-//void Set_LED_Color(int LED, int Color);
-//void Set_LED_State(int LED, int State);
-void Register_Bit_Set(volatile unsigned char *reg,
-                      unsigned int bit,
-                      unsigned int value);
-
-void Set_Led_State(const Led_t *led, Color_t color);
-
+void Register_Bit_Set(volatile unsigned char *reg, unsigned int bit, unsigned int value);
+void Set_LED_Static (BiColorLED_t *led, BiColor_t color);
+void Set_LED_Blinks (BiColorLED_t *led, BiColor_t color, unsigned int blinks);
+void LED_BlinkHandler(BiColorLED_t *led, unsigned int cycleCT);
 
 //----------------------------------------------------------------------------------------------------
 // GPIO Mappings
