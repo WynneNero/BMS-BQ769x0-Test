@@ -28,6 +28,7 @@ enum CellGroup {GroupNull=0, GroupA=1, GroupB=2, GroupC=3 };
 // Variables
 unsigned char StatReg;
 unsigned int CellADCVals[15];
+unsigned int CCVal = 0;
 unsigned char CellIndex=0;
 
 void Set_CHG_On(void)
@@ -35,7 +36,7 @@ void Set_CHG_On(void)
     I2CTXBuf[0]=SETUP_SYS_CTRL2_DSG_ON;
     I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);
 }
-void Set_CHD_DSG_On(void)
+void Set_CHG_DSG_On(void)
 {
     I2CTXBuf[0]=SETUP_SYS_CTRL2_CHG_DSG_ON ;
     I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);
@@ -86,6 +87,13 @@ void Init_BMSConfig(void)
     I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);           //Enable Coulomb Counting and Alert
     I2C_Read(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);            //Confirm Proper Sys Config
 
+    I2CTXBuf[0]=SETUP_PROTECT1;
+    I2CTXBuf[1]=SETUP_PROTECT2;
+    I2CTXBuf[2]=SETUP_PROTECT3;
+    I2CTXBuf[3]=SETUP_OV_TRIP;
+    I2CTXBuf[4]=SETUP_UV_TRIP;
+    I2C_Write(I2C_BQ769xxADDR, REG_PROTECT1, 5);           //Enable Coulomb Counting and Alert
+
     Update_SysStat();
     Clear_SysStat();
 }
@@ -97,7 +105,7 @@ bool GetBit_CCReady(void)
 //----------------------------------------------------------------------------------------------------
 bool Get_Fault(void)
 {   return ((StatReg & (BIT5+BIT3+BIT2+BIT1+BIT0)) != 0);     }
-//wow, the parents around statreg and the bits matters....
+//wow, the parens around statreg and the bits matters....
 
 //----------------------------------------------------------------------------------------------------
 bool GetBit_OV(void)
@@ -222,3 +230,18 @@ float Get_VCell_Dec(unsigned char CellNum)
 {
     return CellADCVals[CellNum]*0.000382;
 }
+
+//----------------------------------------------------------------------------------------------------
+void Update_CCReg(void)
+{
+    I2C_Read(I2C_BQ769xxADDR, REG_CCREG, 2);
+    CCVal = (I2CRXBuf[0] << 8) + I2CRXBuf[1];
+}
+
+//----------------------------------------------------------------------------------------------------
+int Get_CCVal_ADC(void)
+{
+    return CCVal;
+}
+
+

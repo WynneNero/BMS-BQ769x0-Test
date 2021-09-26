@@ -28,7 +28,7 @@ bool Check_BMSProtec(void);
 // Status Register
 unsigned char Update_SysStat(void);
 void Set_CHG_On(void);
-void Set_CHD_DSG_On(void);
+void Set_CHG_DSG_On(void);
 void Set_DSG_On(void);
 void Set_CHG_DSG_Off(void);
 void Clear_SysStat(void);
@@ -48,8 +48,8 @@ bool GetBit_OCD(void);
 //----------------------------------
 // Cell voltage registers
 void Update_VCells(unsigned char Group);
-unsigned int GetNum_VCell_Cnt(unsigned char CellNum);
-float GetNum_VCell_Dec(unsigned char CellNum);
+unsigned int Get_VCell_ADC(unsigned char CellNum);
+float Get_VCell_Dec(unsigned char CellNum);
 //----------------------------------
 // Battery voltage register
 void Update_VBatt(void);
@@ -62,8 +62,8 @@ unsigned int GetNum_TS_Cnt(unsigned char TempNum);
 //----------------------------------
 // Coulomb Counter registers
 void Update_CCReg(void);
-long long GetNum_CCVal_Cnt(void);
-float GetNum_CCVal_Dec(void);
+int Get_CCVal_ADC(void);
+float Get_CCVal_Dec(void);
 
 //----------------------------------
 // Cell balance registers
