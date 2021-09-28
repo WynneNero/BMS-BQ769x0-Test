@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include "Constants.h"
 #include "I2C_Handler.h"
+#include "Fault_Handler.h"
 #include "BatteryData.h"
 #include "System.h"
 
@@ -57,14 +58,23 @@ unsigned int BTNPWR_Return = 0;
 unsigned int SYS_Checkin_CT = 0;
 #define SYS_Checkin_LIM 16
 
+//Cell Voltages
+unsigned int Cell_VMin = 0;
+
 //----------------------------------------------------------------------------------------------------
 // Struct Initializations:
 
+//LEDs:
 // LEDName = PXOUT, Pin_Red, Pin_Green, LED_Mode, LED_Color, Blinks_LIM, Blinks_CT
 //#pragma PERSISTENT(LEDA);
 //#pragma PERSISTENT(LEDB);
 static BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
 static BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
+
+//Faults:
+static Qual_AFE_t UVP_Latch = {3, 0x00};
+static Qual_MCU_t UVP_Clear = {POSITIVE, 0x1771, 0x1770, 0, 20};
+static FaultPair_AFE_MCU_t UVP_Pair =  {CLEARED, &UVP_Latch, &UVP_Clear, 0, 7, BiColor_RED};
 
 
 //----------------------------------------------------------------------------------------------------
@@ -82,7 +92,7 @@ void Fault_Handler(void);
 int main(void)
 {
     // MCU Startup Initialization:
-    Init_GPIO();
+      Init_GPIO();
     Init_Sys();
     Init_I2C();
 
@@ -123,6 +133,7 @@ int main(void)
             //--------------------------------------------------------------------------------
             case SYS_RUN:
                 Alert_Handler();
+                Fault_Handler();
                 SYS_Checkin_CT=0;
 
                 break;
@@ -135,8 +146,14 @@ int main(void)
 
                 Update_SysStat();
                 if(GetBit_CCReady())
-                {
-                    Clear_CCReady();    }
+                {   Clear_CCReady();    }
+
+                Update_VCells(GroupA);
+                Update_VCells(GroupB);
+
+                Cell_VMin = Get_VCell_ADC(7);
+
+                Fault_Handler();
 
                 SYS_Checkin_CT=0;
 
@@ -272,6 +289,8 @@ unsigned int Button_Handler(void)
 //----------------------------------------------------------------------------------------------------
 void Fault_Handler(void)
 {
+    if(FaultHandler_AFE_MCU(&UVP_Pair, &LEDB, Cell_VMin))
+    {   SYS_State=SYS_INIT; }
 
 }
 
@@ -285,9 +304,9 @@ void Alert_Handler()
     {
         SYS_State=SYS_FAULT;
 
-        if(GetBit_UV())
-        {   Set_LED_Static(&LEDA, BiColor_OFF   );
-            Set_LED_Blinks(&LEDB, BiColor_RED, 5);  }
+        //if(GetBit_UV())
+        //{   Set_LED_Static(&LEDA, BiColor_OFF   );
+        //    Set_LED_Blinks(&LEDB, BiColor_RED, 5);  }
         if(GetBit_OV())
         {   Set_LED_Static(&LEDA, BiColor_OFF   );
             Set_LED_Blinks(&LEDB, BiColor_RED, 4);  }

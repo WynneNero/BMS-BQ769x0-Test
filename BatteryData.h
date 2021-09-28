@@ -13,6 +13,7 @@
 //----------------------------------------------------------------------------------------------------
 // This file includes:
 #include <msp430.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <Constants.h>
 
@@ -34,9 +35,10 @@ void Set_CHG_DSG_Off(void);
 void Clear_SysStat(void);
 void Clear_CCReady(void);
 unsigned char GetByte_SysStat(void);
-bool Get_Fault(void);
 bool GetBit_CCReady(void);
 bool GetBit_OvrdAlert(void);
+bool Get_Fault(void);
+bool Get_FaultBit(uint8_t bit);
 bool GetBit_UV(void);
 bool GetBit_OV(void);
 bool GetBit_SCD(void);

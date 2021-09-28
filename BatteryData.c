@@ -10,6 +10,7 @@
 //----------------------------------------------------------------------------------------------------
 // This file includes:
 #include <msp430.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include "Constants.h"
 #include "I2C_Handler.h"
@@ -87,12 +88,12 @@ void Init_BMSConfig(void)
     I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);           //Enable Coulomb Counting and Alert
     I2C_Read(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);            //Confirm Proper Sys Config
 
-    I2CTXBuf[0]=SETUP_PROTECT1;
-    I2CTXBuf[1]=SETUP_PROTECT2;
-    I2CTXBuf[2]=SETUP_PROTECT3;
-    I2CTXBuf[3]=SETUP_OV_TRIP;
-    I2CTXBuf[4]=SETUP_UV_TRIP;
-    I2C_Write(I2C_BQ769xxADDR, REG_PROTECT1, 5);           //Enable Coulomb Counting and Alert
+    //I2CTXBuf[0]=SETUP_PROTECT1;
+    //I2CTXBuf[1]=SETUP_PROTECT2;
+    //I2CTXBuf[2]=SETUP_PROTECT3;
+    //I2CTXBuf[3]=SETUP_OV_TRIP;
+    //I2CTXBuf[4]=SETUP_UV_TRIP;
+    //I2C_Write(I2C_BQ769xxADDR, REG_PROTECT1, 5);           //Enable Coulomb Counting and Alert
 
     Update_SysStat();
     Clear_SysStat();
@@ -106,6 +107,10 @@ bool GetBit_CCReady(void)
 bool Get_Fault(void)
 {   return ((StatReg & (BIT5+BIT3+BIT2+BIT1+BIT0)) != 0);     }
 //wow, the parens around statreg and the bits matters....
+
+//----------------------------------------------------------------------------------------------------
+bool Get_FaultBit(uint8_t bit)
+{   return (StatReg & (1<<bit));    }
 
 //----------------------------------------------------------------------------------------------------
 bool GetBit_OV(void)
