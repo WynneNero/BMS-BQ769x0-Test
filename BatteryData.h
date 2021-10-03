@@ -18,60 +18,57 @@
 #include <Constants.h>
 
 //----------------------------------------------------------------------------------------------------
+// Enumerations
+
+//----------------------------------------------------------------------------------------------------
 // Function Prototypes
-//----------------------------------
+
+//------------------------------------------------------------------------------------------
 // Initializations and Checks
 void Init_BMSConfig(void);
 void Init_BMSProtect(void);
 bool Check_BMSConfig(void);
-bool Check_BMSProtec(void);
-//----------------------------------
+bool Check_BMSProtect(void);
+//------------------------------------------------------------------------------------------
 // Status Register
 unsigned char Update_SysStat(void);
-void Set_CHG_On(void);
-void Set_CHG_DSG_On(void);
-void Set_DSG_On(void);
-void Set_CHG_DSG_Off(void);
 void Clear_SysStat(void);
 void Clear_CCReady(void);
+
 unsigned char GetByte_SysStat(void);
 bool GetBit_CCReady(void);
 bool GetBit_OvrdAlert(void);
+
+void Clear_FaultBits(uint8_t bits);
 bool Get_Fault(void);
 bool Get_FaultBit(uint8_t bit);
-bool GetBit_UV(void);
-bool GetBit_OV(void);
-bool GetBit_SCD(void);
-bool GetBit_OCD(void);
-//----------------------------------
+
+//------------------------------------------------------------------------------------------
 // Set CHG and DSG MOSFETs
+void Set_CHG_DSG_Bits(uint8_t fetbits);
 
-
-//----------------------------------
-// Cell voltage registers
+//------------------------------------------------------------------------------------------
+// Cell and battery voltage registers
 void Update_VCells(unsigned char Group);
 unsigned int Get_VCell_ADC(unsigned char CellNum);
+unsigned int Get_VCell_Max(void);
+unsigned int Get_VCell_Min(void);
 float Get_VCell_Dec(unsigned char CellNum);
-//----------------------------------
-// Battery voltage register
 void Update_VBatt(void);
 
-
-//----------------------------------
-// Temp Sensor registers
-void Update_TSReg(void);
-unsigned int GetNum_TS_Cnt(unsigned char TempNum);
-//----------------------------------
+//------------------------------------------------------------------------------------------
 // Coulomb Counter registers
 void Update_CCReg(void);
 int Get_CCVal_ADC(void);
 float Get_CCVal_Dec(void);
 
-//----------------------------------
+//------------------------------------------------------------------------------------------
+// Temp Sensor registers
+void Update_TSReg(void);
+unsigned int GetNum_TS_Cnt(unsigned char TempNum);
+
+//------------------------------------------------------------------------------------------
 // Cell balance registers
 void Set_CellBal(unsigned char Group, unsigned char Cell, bool Enable);
-
-//----------------------------------------------------------------------------------------------------
-// Global Variables
 
 #endif

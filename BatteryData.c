@@ -24,6 +24,11 @@ const unsigned char NUMCELLS = 8;
 // Enumerations and Defines
 enum CellGroup {GroupNull=0, GroupA=1, GroupB=2, GroupC=3 };
 #define ONEGROUP 10
+// This array defines which cells actually contain valid data and the number of cells in use:
+const uint8_t NumPositions = 10;
+const uint8_t NumCells = 8;
+// Cell AFE Position:      CELL1 CELL2 CELL3 CELL4  CELL5 CELL6 CELL7 CELL8 CELL9  CELL10
+const bool CellActive[] = {true, true, true, false, true, true, true, true, false, true};
 
 //----------------------------------------------------------------------------------------------------
 // Variables
@@ -32,24 +37,11 @@ unsigned int CellADCVals[15];
 unsigned int CCVal = 0;
 unsigned char CellIndex=0;
 
-void Set_CHG_On(void)
+void Set_CHG_DSG_Bits(uint8_t fetbits)
 {
-    I2CTXBuf[0]=SETUP_SYS_CTRL2_DSG_ON;
-    I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);
-}
-void Set_CHG_DSG_On(void)
-{
-    I2CTXBuf[0]=SETUP_SYS_CTRL2_CHG_DSG_ON ;
-    I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);
-}
-void Set_DSG_On(void)
-{
-    I2CTXBuf[0]=SETUP_SYS_CTRL2_CHG_ON;
-    I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);
-}
-void Set_CHG_DSG_Off(void)
-{
-    I2CTXBuf[0]=SETUP_SYS_CTRL2_CHG_DSG_OFF;
+    fetbits&=BIT7+BIT6+BIT5+BIT4+BIT3+BIT2; // Mask all bits off except
+
+    I2CTXBuf[0]=SETUP_SYS_CTRL2_CHG_DSG_OFF|fetbits;
     I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);
 }
 
@@ -104,8 +96,8 @@ bool GetBit_CCReady(void)
 {   return (StatReg & BIT7) != 0;   }
 
 //----------------------------------------------------------------------------------------------------
-bool Get_Fault(void)
-{   return ((StatReg & (BIT5+BIT3+BIT2+BIT1+BIT0)) != 0);     }
+//bool Get_Fault(void)
+//{   return ((StatReg & (BIT5+BIT3+BIT2+BIT1+BIT0)) != 0);     }
 //wow, the parens around statreg and the bits matters....
 
 //----------------------------------------------------------------------------------------------------
@@ -113,21 +105,11 @@ bool Get_FaultBit(uint8_t bit)
 {   return (StatReg & (1<<bit));    }
 
 //----------------------------------------------------------------------------------------------------
-bool GetBit_OV(void)
-{   return (StatReg & BIT2) != 0;   }
-
-//----------------------------------------------------------------------------------------------------
-bool GetBit_UV(void)
-{   return (StatReg & BIT3) != 0;   }
-
-//----------------------------------------------------------------------------------------------------
-bool GetBit_OCD(void)
-{   return (StatReg & BIT0) != 0;   }
-
-//----------------------------------------------------------------------------------------------------
-bool GetBit_SCD(void)
-{   return (StatReg & BIT1) != 0;   }
-
+void Clear_FaultBits(uint8_t bits)
+{
+    I2CTXBuf[0]=bits;
+    I2C_Write(I2C_BQ769xxADDR, REG_SYS_STAT, 1);
+}
 
 //----------------------------------------------------------------------------------------------------
 unsigned char GetByte_SysStat()
@@ -142,31 +124,21 @@ void Update_VCells(unsigned char Group)
     switch (Group)
     {
         case GroupA:
-        {
-            CellIndex=0;
+        {   CellIndex=0;
             GroupReg=REG_VCELL1;
-            break;
-        }
+            break;              }
         case GroupB:
-        {
-            CellIndex=5;
+        {   CellIndex=5;
             GroupReg=REG_VCELL6;
-            break;
-        }
+            break;              }
         case GroupC:
-        {
-            CellIndex=10;
+        {   CellIndex=10;
             GroupReg=REG_VCELL11;
-            break;
-        }
+            break;              }
         case GroupNull:
-        {
-            break;
-        }
+        {   break;              }
         default:
-        {
-            break;
-        }
+        {   break;              }
     }
 
     I2C_Read(I2C_BQ769xxADDR, GroupReg, ONEGROUP);
@@ -187,38 +159,24 @@ void Set_CellBal(unsigned char Group, unsigned char Cell, bool Enable)
     switch (Group)
     {
         case GroupA:
-        {
-            GroupReg=REG_CEL_BAL1;
-            break;
-        }
+        {   GroupReg=REG_CEL_BAL1;
+            break;              }
         case GroupB:
-        {
-            GroupReg=REG_CEL_BAL2;
-            break;
-        }
+        {   GroupReg=REG_CEL_BAL2;
+            break;              }
         case GroupC:
-        {
-            GroupReg=REG_CEL_BAL3;
-            break;
-        }
+        {   GroupReg=REG_CEL_BAL3;
+            break;              }
         case GroupNull:
-        {
-            break;
-        }
+        {   break;              }
         default:
-        {
-            break;
-        }
+        {   break;              }
     }
 
     if(Enable==true)
-    {
-        I2CTXBuf[0]=0x01;
-    }
+    {   I2CTXBuf[0]=0x01;       }
     if(Enable==false)
-    {
-        I2CTXBuf[0]=0x00;
-    }
+    {   I2CTXBuf[0]=0x00;       }
     I2C_Write(I2C_BQ769xxADDR, GroupReg, ONEGROUP);
 }
 
@@ -227,6 +185,42 @@ void Set_CellBal(unsigned char Group, unsigned char Cell, bool Enable)
 unsigned int Get_VCell_ADC(unsigned char CellNum)
 {
     return CellADCVals[CellNum];
+}
+
+//----------------------------------------------------------------------------------------------------
+// Get Cell Voltage in ADC Counts
+unsigned int Get_VCell_Max(void)
+{
+    unsigned int Max=0;
+    unsigned int CT=0;
+
+    for(CT=0; CT<NumPositions; CT++)
+    {
+        if(CellActive[CT]==true)
+        {
+            if(CellADCVals[CT]>Max)
+            {   Max=CellADCVals[CT];    }
+        }
+    }
+    return Max;
+}
+
+//----------------------------------------------------------------------------------------------------
+// Get Cell Voltage in ADC Counts
+unsigned int Get_VCell_Min(void)
+{
+    unsigned int Min=0;
+    unsigned int CT=0;
+
+    for(CT=0; CT<NumPositions; CT++)
+    {
+        if(CellActive[CT]==true)
+        {
+            if(CellADCVals[CT]<Min)
+            {   Min=CellADCVals[CT];    }
+        }
+    }
+    return Min;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -248,5 +242,3 @@ int Get_CCVal_ADC(void)
 {
     return CCVal;
 }
-
-

@@ -20,9 +20,9 @@
 
 //----------------------------------------------------------------------------------------------------
 // Enumerations and associated variables
-enum CellGroup {GroupNull=0, GroupA=1, GroupB=2, GroupC=3 }; //I dont remember what I was doing with this...
+enum CellGroup {GroupNull=0, GroupA=1, GroupB=2, GroupC=3 };
 
-enum SYS_State {DEEP_SLEEP, SYS_OFF, SYS_INIT, SYS_RUN, SYS_FAULT, FAULT_DSG, FAULT_CHG, FAULT_ALL};
+enum SYS_State {DEEP_SLEEP, SYS_OFF, SYS_INIT, SYS_RUN};
 unsigned int SYS_State = SYS_INIT;
 
 enum ButtonState {NPRESSED, PRESSED, SHORT_PRESSED, LONG_PRESSED, LONG_IDLE};
@@ -31,14 +31,22 @@ unsigned int ButtonState = NPRESSED;
 
 //----------------------------------------------------------------------------------------------------
 //Flow control flag variables
-enum SYS_Wakeup {LEDBUTTONS, ALERT};
-int SYS_Wakeup = LEDBUTTONS;
 
 bool Flag_LEDBTN = false;
 bool Flag_AFEALRT = false;
-bool Flag_FLTRST = false;
+bool Flag_USRRST = false;
+bool Flag_FAULT = false;
 
 bool BTNA_LongPress = false;
+
+bool Flag_NCHG = false;
+bool Flag_NDSG = false;
+
+uint8_t PrevFETBits=0x03; // DSG_ON=BIT1, CHG_ON=BIT0
+uint8_t FETBits=0x03; // DSG_ON=BIT1, CHG_ON=BIT0
+
+uint8_t ClearBits=0x00;
+
 
 //typedef enum {PRESSED, DBOUNCE1, DBOUNCE2};
 
@@ -72,9 +80,13 @@ static BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
 static BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
 
 //Faults:
+static Qual_AFE_t OVP_Latch = {2, 0x00};
+static Qual_MCU_t OVP_Clear = {NEGATIVE, 0x2329, 0x2328  , 0, 20};
+static FaultPair_AFE_MCU_t OVP_Pair =  {CLEARED, &OVP_Latch, &OVP_Clear, BIT3, 0, 7, BiColor_GREEN};
+
 static Qual_AFE_t UVP_Latch = {3, 0x00};
 static Qual_MCU_t UVP_Clear = {POSITIVE, 0x1771, 0x1770, 0, 20};
-static FaultPair_AFE_MCU_t UVP_Pair =  {CLEARED, &UVP_Latch, &UVP_Clear, 0, 7, BiColor_RED};
+static FaultPair_AFE_MCU_t UVP_Pair =  {CLEARED, &UVP_Latch, &UVP_Clear, BIT3, 0, 7, BiColor_RED};
 
 
 //----------------------------------------------------------------------------------------------------
@@ -92,7 +104,7 @@ void Fault_Handler(void);
 int main(void)
 {
     // MCU Startup Initialization:
-      Init_GPIO();
+    Init_GPIO();
     Init_Sys();
     Init_I2C();
 
@@ -132,35 +144,27 @@ int main(void)
                 break;
             //--------------------------------------------------------------------------------
             case SYS_RUN:
-                Alert_Handler();
-                Fault_Handler();
-                SYS_Checkin_CT=0;
-
-                break;
-            //--------------------------------------------------------------------------------
-            case SYS_FAULT:
-
-                if(Flag_FLTRST)
-                {   SYS_State=SYS_INIT;     }
-                Flag_FLTRST=false;
 
                 Update_SysStat();
-                if(GetBit_CCReady())
-                {   Clear_CCReady();    }
 
                 Update_VCells(GroupA);
                 Update_VCells(GroupB);
 
                 Cell_VMin = Get_VCell_ADC(7);
 
+                Alert_Handler();
                 Fault_Handler();
-
                 SYS_Checkin_CT=0;
 
+                if(Flag_USRRST)
+                {   Flag_USRRST=false;  }
+
+                SYS_Checkin_CT=0;
                 break;
+
             }
-        DBUGOUT_POUT &= ~DBUGOUT_2;
-        Flag_AFEALRT=false;
+            DBUGOUT_POUT &= ~DBUGOUT_2;
+            Flag_AFEALRT=false;
         }
 
 
@@ -183,14 +187,14 @@ int main(void)
             if(BTNPWR_Return==SHORT_PRESSED)
             {   __delay_cycles(10);     }
             if(BTNPWR_Return==LONG_PRESSED)
-            {   Flag_FLTRST=true;       }
+            {   Flag_USRRST=true;       }
             // This acts as a backup if for some reason the system misses the ALERT interrupt,
             // also convenient when it is masked during debugging:
             if((I2C_ALRT1_PIN|=I2C_ALRT1) && (SYS_Checkin_CT>SYS_Checkin_LIM))
             {   Flag_AFEALRT = true; }
 
-        DBUGOUT_POUT &= ~DBUGOUT_1;
-        Flag_LEDBTN = false;
+            DBUGOUT_POUT &= ~DBUGOUT_1;
+            Flag_LEDBTN = false;
         }
 
     }
@@ -216,7 +220,7 @@ void Init_App(void)
     Init_BMSConfig();
     __delay_cycles(100000);
     Set_ChargePump_On();
-    Set_CHG_DSG_On();
+    Set_CHG_DSG_Bits(BIT1+BIT0);
 
     //Blink Green LED60 again on AFE config:
     Set_LED_Static(&LEDB, BiColor_RED);
@@ -289,34 +293,47 @@ unsigned int Button_Handler(void)
 //----------------------------------------------------------------------------------------------------
 void Fault_Handler(void)
 {
-    if(FaultHandler_AFE_MCU(&UVP_Pair, &LEDB, Cell_VMin))
-    {   SYS_State=SYS_INIT; }
+    FaultHandler_AFE_MCU(&UVP_Pair, &LEDB, &ClearBits, Cell_VMin);
+
+
+    //Protections which inhibit CHG FET:
+    //if(OVP_Pair.State==TRIPPED)
+    //{   FETBits |= BIT0;    }
+    //else if(OVP_Pair.State==CLEARED)
+    //{   FETBits &= ~BIT0;   }
+
+
+    //Protections which inhibit DSG FET:
+    if(UVP_Pair.State==TRIPPED)
+    {   FETBits &= ~BIT1;                   }
+    else if(UVP_Pair.State==CLEARED)
+    {   FETBits |= BIT1;                    }
+
+    //If you do the same type of statement for things that trip both FETs you will override previous
+    //states, so include the statements for things like OTPB in BOTH CHG and DSG inhibit statements
+
+    //If there is a change, set the FET bits:
+
+    if(ClearBits!=0x00)
+    {   Clear_FaultBits(ClearBits);
+        ClearBits=0x00;                     }
+
+
+    if(FETBits!=PrevFETBits)
+    {   Set_CHG_DSG_Bits(FETBits);
+        PrevFETBits=FETBits;                }
+
+    if(FETBits==(BIT1+BIT0))
+    {   Set_LED_Static(&LEDB, BiColor_OFF); }
 
 }
+
 
 //----------------------------------------------------------------------------------------------------
 //Handle incoming alerts on the I2C Interrupt line
 void Alert_Handler()
 {
     Update_SysStat();
-
-    if(Get_Fault())
-    {
-        SYS_State=SYS_FAULT;
-
-        //if(GetBit_UV())
-        //{   Set_LED_Static(&LEDA, BiColor_OFF   );
-        //    Set_LED_Blinks(&LEDB, BiColor_RED, 5);  }
-        if(GetBit_OV())
-        {   Set_LED_Static(&LEDA, BiColor_OFF   );
-            Set_LED_Blinks(&LEDB, BiColor_RED, 4);  }
-        if(GetBit_SCD())
-        {   Set_LED_Static(&LEDA, BiColor_OFF   );
-            Set_LED_Blinks(&LEDB, BiColor_RED, 3);  }
-        if(GetBit_OCD())
-        {   Set_LED_Static(&LEDA, BiColor_OFF   );
-            Set_LED_Blinks(&LEDB, BiColor_RED, 2);  }
-    }
 
     if(GetBit_CCReady())
     {   Clear_CCReady();    }

@@ -76,14 +76,15 @@ typedef struct
     FaultState_t State;
     Qual_AFE_t *Latch;
     Qual_MCU_t *Clear;
+    const uint8_t ClearBit;
 
     unsigned int Fault_CT;
     unsigned int Fault_NumBlinks;
-    BiColor_t Fault_Color;
+      BiColor_t Fault_Color;
 
 } FaultPair_AFE_MCU_t;
 
-bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair, BiColorLED_t *led, unsigned int data);
+bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair, BiColorLED_t *led, uint8_t *clearbits, unsigned int data);
 
 //----------------------------------------------------------------------------------------------------
 // Main fault pair for referencing Latch/Clear structs
@@ -92,6 +93,7 @@ typedef struct
     FaultState_t State;
     Qual_AFE_t *Latch;
     Qual_AUR_t *Clear;
+    uint8_t ClearBit;
 
     unsigned int Fault_CT;
     unsigned int Fault_NumBlinks;
@@ -99,7 +101,7 @@ typedef struct
 
 } FaultPair_AFE_AUR_t;
 
-bool FaultHandler_AFE_AUR (FaultPair_AFE_AUR_t *pair);
+bool FaultHandler_AFE_AUR (FaultPair_AFE_AUR_t *pair, BiColorLED_t *led, uint8_t *clearbits);
 
 //----------------------------------------------------------------------------------------------------
 // Main fault pair for referencing Latch/Clear structs

@@ -29,10 +29,8 @@
 //----------------------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------------------
-bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair, BiColorLED_t *led, unsigned int data)
+bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair, BiColorLED_t *led, uint8_t *clearbits, unsigned int data)
 {
-
-
     switch(pair->State)
     {
     case CLEARED:
@@ -48,11 +46,14 @@ bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair, BiColorLED_t *led, unsigne
         pair->Clear->Value = data;
         if(QualHandler_MCU(pair->Clear))
         {
+            *clearbits|=pair->ClearBit;
             pair->State=CLEARED;
-            return true;
+              return true;
         }
         break;
     }
+
+    return false;
 }
 
 //----------------------------------------------------------------------------------------------------
