@@ -15,6 +15,7 @@
 #include "Constants.h"
 #include "I2C_Handler.h"
 #include "BatteryData.h"
+#include "UART_Interface.h"
 
 //----------------------------------------------------------------------------------------------------
 // Constants
@@ -148,6 +149,9 @@ void Update_VCells(unsigned char Group)
     CellADCVals[CellIndex+2] = (I2CRXBuf[4] << 8) + I2CRXBuf[5];
     CellADCVals[CellIndex+3] = (I2CRXBuf[6] << 8) + I2CRXBuf[7];
     CellADCVals[CellIndex+4] = (I2CRXBuf[8] << 8) + I2CRXBuf[9];
+
+    printf("CellADCVals: "); unsigned int i=0; for (i=0; i<NUMCELLS; i++) printf("%i,", CellADCVals[i]); printf("\n");
+
 }
 
 //----------------------------------------------------------------------------------------------------

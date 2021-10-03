@@ -153,4 +153,9 @@ void LED_BlinkHandler(BiColorLED_t *led, unsigned int cycleCT);
 #define DBUGOUT_1 BIT4
 #define DBUGOUT_2 BIT5
 
+//------------------------------------------------------
+// (KRS) export LEDs so you can access them from other files
+extern BiColorLED_t LEDA;
+extern BiColorLED_t LEDB;
+
 #endif

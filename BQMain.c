@@ -14,6 +14,7 @@
 #include "Fault_Handler.h"
 #include "BatteryData.h"
 #include "System.h"
+#include "UART_Interface.h"
 
 //----------------------------------------------------------------------------------------------------
 //Constants
@@ -76,8 +77,8 @@ unsigned int Cell_VMin = 0;
 // LEDName = PXOUT, Pin_Red, Pin_Green, LED_Mode, LED_Color, Blinks_LIM, Blinks_CT
 //#pragma PERSISTENT(LEDA);
 //#pragma PERSISTENT(LEDB);
-static BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
-static BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
+extern BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
+extern BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
 
 //Faults:
 static Qual_AFE_t OVP_Latch = {2, 0x00};
@@ -104,7 +105,7 @@ void Fault_Handler(void);
 int main(void)
 {
     // MCU Startup Initialization:
-    Init_GPIO();
+      Init_GPIO();
     Init_Sys();
     Init_I2C();
 
@@ -113,6 +114,8 @@ int main(void)
     __delay_cycles(100000);
 
     TB0CTL |= MC_1;
+
+    Init_UART();
 
     while (1)
     {
