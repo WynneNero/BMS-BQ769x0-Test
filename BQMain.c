@@ -68,7 +68,10 @@ unsigned int SYS_Checkin_CT = 0;
 #define SYS_Checkin_LIM 16
 
 //Cell Voltages
+unsigned int Cell_VMax = 0;
 unsigned int Cell_VMin = 0;
+signed int IMeasured = 0;
+signed int IOffset = -334;
 
 //----------------------------------------------------------------------------------------------------
 // Struct Initializations:
@@ -83,11 +86,25 @@ extern BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
 //Faults:
 static Qual_AFE_t OVP_Latch = {2, 0x00};
 static Qual_MCU_t OVP_Clear = {NEGATIVE, 0x2329, 0x2328  , 0, 20};
-static FaultPair_AFE_MCU_t OVP_Pair =  {CLEARED, &OVP_Latch, &OVP_Clear, BIT3, 0, 7, BiColor_GREEN};
+static FaultPair_AFE_MCU_t OVP_Pair =  {CLEARED, &OVP_Latch, &OVP_Clear, BIT2, 0, 7, BiColor_GREEN};
 
 static Qual_AFE_t UVP_Latch = {3, 0x00};
 static Qual_MCU_t UVP_Clear = {POSITIVE, 0x1771, 0x1770, 0, 20};
 static FaultPair_AFE_MCU_t UVP_Pair =  {CLEARED, &UVP_Latch, &UVP_Clear, BIT3, 0, 7, BiColor_RED};
+
+static Qual_AFE_t OCPD_Latch = {0, 0x00};
+static Qual_MCU_t OCPD_Clear = {POSITIVE, 0x0010, 0x0010, 0, 80};
+static FaultPair_AFE_MCU_t OCPD_Pair =  {CLEARED, &OCPD_Latch, &OCPD_Clear, BIT0, 0, 5, BiColor_RED};
+
+static Qual_MCU_t BCPD_Latch = {POSITIVE, 0x0000, BCPD_Thresh, 0, 4};
+static Qual_AUR_t BCPD_Clear = {false, 0, 40, 0, 3, false};
+static FaultPair_MCU_AUR_t BCPD_Pair =  {CLEARED, &BCPD_Latch, &BCPD_Clear, 0, 4, BiColor_RED};
+
+static Qual_MCU_t MCPD_Latch = {POSITIVE, 0x0000, MCPD_Thresh
+
+                                , 0, 40};
+static Qual_AUR_t MCPD_Clear = {false, 0, 40, 0, 3, false};
+static FaultPair_MCU_AUR_t MCPD_Pair =  {CLEARED, &MCPD_Latch, &MCPD_Clear, 0, 3, BiColor_RED};
 
 
 //----------------------------------------------------------------------------------------------------
@@ -98,14 +115,13 @@ unsigned int Button_Handler(void);
 //void LED_Handler(int Mode);
 
 void Alert_Handler(void);
-void System_Handler(void);
 void Fault_Handler(void);
 
 //----------------------------------------------------------------------------------------------------
 int main(void)
 {
     // MCU Startup Initialization:
-      Init_GPIO();
+    Init_GPIO();
     Init_Sys();
     Init_I2C();
 
@@ -115,7 +131,7 @@ int main(void)
 
     TB0CTL |= MC_1;
 
-    Init_UART();
+    //Init_UART();
 
     while (1)
     {
@@ -148,19 +164,16 @@ int main(void)
             //--------------------------------------------------------------------------------
             case SYS_RUN:
 
-                Update_SysStat();
+                //Update_SysStat();
+                Alert_Handler();
 
                 Update_VCells(GroupA);
                 Update_VCells(GroupB);
 
-                Cell_VMin = Get_VCell_ADC(7);
+                Cell_VMax = Get_VCell_Max();
+                Cell_VMin = Get_VCell_Min();
 
-                Alert_Handler();
                 Fault_Handler();
-                SYS_Checkin_CT=0;
-
-                if(Flag_USRRST)
-                {   Flag_USRRST=false;  }
 
                 SYS_Checkin_CT=0;
                 break;
@@ -221,8 +234,8 @@ void Init_App(void)
     //Setup for BQ769x0:
     __delay_cycles(100000);
     Init_BMSConfig();
-    __delay_cycles(100000);
     Set_ChargePump_On();
+    __delay_cycles(100000);
     Set_CHG_DSG_Bits(BIT1+BIT0);
 
     //Blink Green LED60 again on AFE config:
@@ -237,13 +250,12 @@ void Init_App(void)
 
 
 
+
     // Configure Timer_A for button debounce
     TB0CTL = TBSSEL_1 | TBCLR | TBIE;      // ACLK, count mode, clear TBR, enable interrupt
     TB0CCR0 = 1000;
     TB0CCR1 = 524;
     TB0CCTL1 = CCIE;
-
-
 
     __delay_cycles(750000);
 }
@@ -294,54 +306,93 @@ unsigned int Button_Handler(void)
 }
 
 //----------------------------------------------------------------------------------------------------
-void Fault_Handler(void)
-{
-    FaultHandler_AFE_MCU(&UVP_Pair, &LEDB, &ClearBits, Cell_VMin);
-
-
-    //Protections which inhibit CHG FET:
-    //if(OVP_Pair.State==TRIPPED)
-    //{   FETBits |= BIT0;    }
-    //else if(OVP_Pair.State==CLEARED)
-    //{   FETBits &= ~BIT0;   }
-
-
-    //Protections which inhibit DSG FET:
-    if(UVP_Pair.State==TRIPPED)
-    {   FETBits &= ~BIT1;                   }
-    else if(UVP_Pair.State==CLEARED)
-    {   FETBits |= BIT1;                    }
-
-    //If you do the same type of statement for things that trip both FETs you will override previous
-    //states, so include the statements for things like OTPB in BOTH CHG and DSG inhibit statements
-
-    //If there is a change, set the FET bits:
-
-    if(ClearBits!=0x00)
-    {   Clear_FaultBits(ClearBits);
-        ClearBits=0x00;                     }
-
-
-    if(FETBits!=PrevFETBits)
-    {   Set_CHG_DSG_Bits(FETBits);
-        PrevFETBits=FETBits;                }
-
-    if(FETBits==(BIT1+BIT0))
-    {   Set_LED_Static(&LEDB, BiColor_OFF); }
-
-}
-
-
-//----------------------------------------------------------------------------------------------------
 //Handle incoming alerts on the I2C Interrupt line
 void Alert_Handler()
 {
     Update_SysStat();
 
     if(GetBit_CCReady())
-    {   Clear_CCReady();    }
+    {   //First get the Coulomb counter here, then clear
+        IMeasured = Update_CCReg();
+        Clear_CCReady();
+        IMeasured-=IOffset;
+    }
+
+    if(IMeasured<IDBLINK1 && IMeasured>ICBLINK1)
+    {   Set_LED_Blinks(&LEDA, BiColor_YELLOW, 1);  }
+    else if(IMeasured<IDBLINK2 && IMeasured>IDBLINK1)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 1);   }
+    else if(IMeasured<IDBLINK3 && IMeasured>IDBLINK2)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 2);   }
+    else if(IMeasured<IDBLINK4 && IMeasured>IDBLINK3)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 3);   }
+    else if(IMeasured<IDBLINK5 && IMeasured>IDBLINK4)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 4);   }
+    else if(IMeasured<IDBLINK6 && IMeasured>IDBLINK5)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 5);   }
+    else if(IMeasured<IDBLINK7 && IMeasured>IDBLINK6)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 6);   }
+
+    if(IMeasured>ICBLINK2 && IMeasured<ICBLINK1)
+    {   Set_LED_Blinks(&LEDA, BiColor_RED, 1);   }
+    else if(IMeasured>ICBLINK3 && IMeasured<ICBLINK2)
+    {   Set_LED_Blinks(&LEDA, BiColor_RED, 2);   }
+    else if(IMeasured>ICBLINK4 && IMeasured<ICBLINK3)
+    {   Set_LED_Blinks(&LEDA, BiColor_RED, 3);   }
+    else if(IMeasured>ICBLINK5 && IMeasured<ICBLINK4)
+    {   Set_LED_Blinks(&LEDA, BiColor_RED, 4);   }
+    else if(IMeasured>ICBLINK6 && IMeasured<ICBLINK5)
+    {   Set_LED_Blinks(&LEDA, BiColor_RED, 5);   }
+    else if(IMeasured>ICBLINK7 && IMeasured<ICBLINK6)
+    {   Set_LED_Blinks(&LEDA, BiColor_RED, 6);   }
 }
 
+//----------------------------------------------------------------------------------------------------
+void Fault_Handler(void)
+{
+    FaultHandler_AFE_MCU(&OVP_Pair, &LEDB, &ClearBits, Cell_VMax);
+    FaultHandler_AFE_MCU(&UVP_Pair, &LEDB, &ClearBits, Cell_VMin);
+    //FaultHandler_AFE_MCU(&SCPD_Pair, &LEDB, &ClearBits, Cell_VMin);
+    //FaultHandler_AFE_MCU(&OCPD_Pair, &LEDB, &ClearBits, Cell_VMin);
+    //FaultHandler_MCU_AUR(&BCPD_Pair, &LEDB, IMeasured);
+    FaultHandler_MCU_AUR(&MCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
+    //FaultHandler_MCU_AUR(&MCPC_Pair, &LEDB, IMeasured);
+    //FaultHandler_MCU_AUR(&BCPC_Pair, &LEDB, IMeasured);
+
+    if(Flag_USRRST)
+    {   Flag_USRRST=false;  }
+
+    //Protections which inhibit CHG FET:
+    if(OVP_Pair.State==TRIPPED)
+    {   FETBits &= ~BIT0;                   }
+    else if(OVP_Pair.State==CLEARED)
+    {   FETBits |= BIT0;                    }
+
+    //Protections which inhibit DSG FET:
+    if(UVP_Pair.State==TRIPPED||MCPD_Pair.State==TRIPPED)
+    {   FETBits &= ~BIT1;                   }
+
+    if(UVP_Pair.State==CLEARED&&MCPD_Pair.State==CLEARED)
+    {   FETBits |= BIT1;                    }
+
+    //If you do the same type of statement for things that trip both FETs you will override previous
+    //states, so include the statements for things like OTPB in BOTH CHG and DSG inhibit statements
+
+    ///For AFE Drive protection Latching, write 1 to clear if respective faults were recovered from
+    if(ClearBits!=0x00)
+    {   Clear_FaultBits(ClearBits);
+        ClearBits=0x00;                     }
+
+    //If there is a change in CHG or DSG, set the respective FET bits:
+    if(FETBits!=PrevFETBits)
+    {   Set_CHG_DSG_Bits(FETBits);
+        PrevFETBits=FETBits;                }
+
+    //Also clear the fault LED upon recover from all faults:
+    if(FETBits==(BIT1+BIT0))
+    {   Set_LED_Static(&LEDB, BiColor_OFF); }
+
+}
 
 //----------------------------------------------------------------------------------------------------
 // Port 1 interrupt service routine

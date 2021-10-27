@@ -103,6 +103,8 @@ void Setup_Buttons(void)
     //BTNPWR_IFG &= ~BTNPWR;           // Button Pin interrupt flag cleared
 }
 
+
+
 //----------------------------------------------------------------------------------------------------
 void Setup_GateDriver(void)
 {
@@ -159,8 +161,8 @@ void Set_LED_Static (BiColorLED_t *led, BiColor_t color)
 void Set_LED_Blinks (BiColorLED_t *led, BiColor_t color, unsigned int blinks)
 {
     led->LED_Mode = LEDMode_BLINK;
-    led->LED_Color = color;
-    led->Blinks_LIM = blinks;
+    led->Next_Color = color;
+    led->Next_LIM = blinks;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -201,6 +203,8 @@ void LED_BlinkHandler(BiColorLED_t *led, unsigned int cycleCT)
             Register_Bit_Set(led->PXOUT, led->Pin_Red, state->red);
             Register_Bit_Set(led->PXOUT, led->Pin_Green, state->green);
             led->Blinks_CT=0;
+            led->Blinks_LIM=led->Next_LIM;  //Load in new buffered blink count limit
+            led->LED_Color=led->Next_Color; //load in new buffered color
         }
 
         break;

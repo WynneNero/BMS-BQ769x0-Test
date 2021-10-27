@@ -18,15 +18,35 @@
 #define I2C_BQ769xxADDR         0x18
 //----------------------------------
 #define SETUP_SYS_CTRL1         0x10    //ADC Enabled
-#define SETUP_SYS_CTRL2         0x40    //Coulomb Counter Enabled
+#define SETUP_SYS_CTRL2         0x43
+//Coulomb Counter Enabled
 #define SETUP_SYS_CTRL2_CHG_ON          0x41
 #define SETUP_SYS_CTRL2_CHG_DSG_ON      0x43
 #define SETUP_SYS_CTRL2_DSG_ON          0x42
 #define SETUP_SYS_CTRL2_CHG_DSG_OFF     0x40
 
+#define IDBLINK1                118     //0.1A
+#define IDBLINK2                237     //0.2A
+#define IDBLINK3                592     //0.5A
+#define IDBLINK4                1184    //1.0A
+#define IDBLINK5                2370    //2.0A
+#define IDBLINK6                3555    //3.0A
+#define IDBLINK7                4739    //4.0A
+#define ICBLINK1                -118    //-0.1A
+#define ICBLINK2                -237    //-0.2A
+#define ICBLINK3                -355    //-0.3A
+#define ICBLINK4                -829    //-0.7A
+#define ICBLINK5                -1422   //-1.2A
+#define ICBLINK6                -2132   //-1.8A
+#define ICBLINK7                -2843   //-2.4A
+#define BCPD_Thresh             3554    //3.0A
+#define MCPD_Thresh             4265    //3.6A
+
+
 //----------------------------------
-#define SETUP_PROTECT1          0x8D    //SCD=155A, 100uS
-#define SETUP_PROTECT2          0x4F    //OCD=100A, 160uS
+//Current Sense Resistor        = 4mOhms
+#define SETUP_PROTECT1          0x89    //SCD=6.7A, 80uS
+#define SETUP_PROTECT2          0x45    //OCD=4.4A, 160mS
 #define SETUP_PROTECT3          0xB0    //OV in 8S, UV in 8S
 #define SETUP_OV_TRIP           0xFF    //Over Voltage Trip Threshold
 #define SETUP_UV_TRIP           0x01    //Under Voltage Trip Threshold

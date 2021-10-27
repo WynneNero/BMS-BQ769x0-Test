@@ -29,12 +29,15 @@
 //----------------------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------------------
-bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair, BiColorLED_t *led, uint8_t *clearbits, unsigned int data)
+bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair,
+                           BiColorLED_t *led,
+                           uint8_t *clearbits,
+                           unsigned int data)
 {
     switch(pair->State)
     {
     case CLEARED:
-        if(QualHandler_AFE(pair->Latch))
+        if(QualHandler_AFE(pair->Latch)==true)
         {
             Set_LED_Blinks (led, pair->Fault_Color, pair->Fault_NumBlinks);
             pair->State=TRIPPED;
@@ -57,10 +60,50 @@ bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair, BiColorLED_t *led, uint8_t
 }
 
 //----------------------------------------------------------------------------------------------------
+bool FaultHandler_MCU_AUR (FaultPair_MCU_AUR_t *pair,
+                           BiColorLED_t *led,
+                           bool clearflag,
+                           signed int data)
+
+{
+    switch(pair->State)
+    {
+    case CLEARED:
+        pair->Latch->Value = data;
+        if(QualHandler_MCU(pair->Latch))
+        {
+            Set_LED_Blinks (led, pair->Fault_Color, pair->Fault_NumBlinks);
+            pair->State=TRIPPED;
+            return false;
+        }
+        break;
+    case TRIPPED:
+        //if(QualHandler_AUR(pair->Clear))
+        if(clearflag)
+        {
+            pair->State=CLEARED;
+              return true;
+        }
+        break;
+    }
+
+    return false;
+}
+
+
+//----------------------------------------------------------------------------------------------------
+// AUR Qualifier Handler
+bool QualHandler_AUR (Qual_AUR_t *qual)
+{
+
+}
+
+//----------------------------------------------------------------------------------------------------
 // AFE Threshold Qualifier Handler
 bool QualHandler_AFE (Qual_AFE_t *qual)
 {
-    if(Get_FaultBit(qual->BitNum))
+    uint8_t RetVal = Get_FaultBit(qual->BitNum);
+    if(RetVal)
     {   return true;    }
     else
     {   return false;   }

@@ -30,6 +30,9 @@ const uint8_t NumPositions = 10;
 const uint8_t NumCells = 8;
 // Cell AFE Position:      CELL1 CELL2 CELL3 CELL4  CELL5 CELL6 CELL7 CELL8 CELL9  CELL10
 const bool CellActive[] = {true, true, true, false, true, true, true, true, false, true};
+//const unsigned int
+
+
 
 //----------------------------------------------------------------------------------------------------
 // Variables
@@ -40,7 +43,7 @@ unsigned char CellIndex=0;
 
 void Set_CHG_DSG_Bits(uint8_t fetbits)
 {
-    fetbits&=BIT7+BIT6+BIT5+BIT4+BIT3+BIT2; // Mask all bits off except
+    //fetbits&=!(BIT7+BIT6+BIT5+BIT4+BIT3+BIT2); // Mask all bits off except
 
     I2CTXBuf[0]=SETUP_SYS_CTRL2_CHG_DSG_OFF|fetbits;
     I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);
@@ -81,12 +84,12 @@ void Init_BMSConfig(void)
     I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);           //Enable Coulomb Counting and Alert
     I2C_Read(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);            //Confirm Proper Sys Config
 
-    //I2CTXBuf[0]=SETUP_PROTECT1;
-    //I2CTXBuf[1]=SETUP_PROTECT2;
-    //I2CTXBuf[2]=SETUP_PROTECT3;
+    I2CTXBuf[0]=SETUP_PROTECT1;
+    I2CTXBuf[1]=SETUP_PROTECT2;
+    I2CTXBuf[2]=SETUP_PROTECT3;
     //I2CTXBuf[3]=SETUP_OV_TRIP;
     //I2CTXBuf[4]=SETUP_UV_TRIP;
-    //I2C_Write(I2C_BQ769xxADDR, REG_PROTECT1, 5);           //Enable Coulomb Counting and Alert
+    I2C_Write(I2C_BQ769xxADDR, REG_PROTECT1, 3);           //Setup OCP and SCP Thresholds
 
     Update_SysStat();
     Clear_SysStat();
@@ -103,7 +106,7 @@ bool GetBit_CCReady(void)
 
 //----------------------------------------------------------------------------------------------------
 bool Get_FaultBit(uint8_t bit)
-{   return (StatReg & (1<<bit));    }
+{   return ((StatReg&0x0F) & (0x01<<bit));    }
 
 //----------------------------------------------------------------------------------------------------
 void Clear_FaultBits(uint8_t bits)
@@ -213,7 +216,7 @@ unsigned int Get_VCell_Max(void)
 // Get Cell Voltage in ADC Counts
 unsigned int Get_VCell_Min(void)
 {
-    unsigned int Min=0;
+    unsigned int Min=9999;
     unsigned int CT=0;
 
     for(CT=0; CT<NumPositions; CT++)
@@ -235,10 +238,11 @@ float Get_VCell_Dec(unsigned char CellNum)
 }
 
 //----------------------------------------------------------------------------------------------------
-void Update_CCReg(void)
+int Update_CCReg(void)
 {
     I2C_Read(I2C_BQ769xxADDR, REG_CCREG, 2);
     CCVal = (I2CRXBuf[0] << 8) + I2CRXBuf[1];
+    return CCVal = (~CCVal)+1; // Convert from 2s compliment
 }
 
 //----------------------------------------------------------------------------------------------------

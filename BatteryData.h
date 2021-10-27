@@ -58,7 +58,7 @@ void Update_VBatt(void);
 
 //------------------------------------------------------------------------------------------
 // Coulomb Counter registers
-void Update_CCReg(void);
+int Update_CCReg(void);
 int Get_CCVal_ADC(void);
 float Get_CCVal_Dec(void);
 

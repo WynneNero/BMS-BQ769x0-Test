@@ -61,8 +61,10 @@ typedef struct
 
     //Data for Blink Mode:
     BiColor_t LED_Color;
+    BiColor_t Next_Color;
     unsigned int Blink_PeriodCT;
     unsigned int Blinks_LIM;
+    unsigned int Next_LIM;
     unsigned int Blinks_CT;
 
 } BiColorLED_t;

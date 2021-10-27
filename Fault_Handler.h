@@ -84,7 +84,10 @@ typedef struct
 
 } FaultPair_AFE_MCU_t;
 
-bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair, BiColorLED_t *led, uint8_t *clearbits, unsigned int data);
+bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair,
+                           BiColorLED_t *led,
+                           uint8_t *clearbits,
+                           unsigned int data);
 
 //----------------------------------------------------------------------------------------------------
 // Main fault pair for referencing Latch/Clear structs
@@ -101,7 +104,9 @@ typedef struct
 
 } FaultPair_AFE_AUR_t;
 
-bool FaultHandler_AFE_AUR (FaultPair_AFE_AUR_t *pair, BiColorLED_t *led, uint8_t *clearbits);
+bool FaultHandler_AFE_AUR (FaultPair_AFE_AUR_t *pair,
+                           BiColorLED_t *led,
+                           uint8_t *clearbits);
 
 //----------------------------------------------------------------------------------------------------
 // Main fault pair for referencing Latch/Clear structs
@@ -117,7 +122,9 @@ typedef struct
 
 } FaultPair_MCU_MCU_t;
 
-bool FaultHandler_MCU_MCU (FaultPair_MCU_MCU_t *pair);
+bool FaultHandler_MCU_MCU (FaultPair_MCU_MCU_t *pair,
+                           BiColorLED_t *led,
+                           unsigned int data);
 
 //----------------------------------------------------------------------------------------------------
 // Main fault pair for referencing Latch/Clear structs
@@ -133,7 +140,9 @@ typedef struct
 
 } FaultPair_MCU_AUR_t;
 
-bool FaultHandler_MCU_AUR (FaultPair_MCU_AUR_t *pair);
-
+bool FaultHandler_MCU_AUR (FaultPair_MCU_AUR_t *pair,
+                           BiColorLED_t *led,
+                           bool clearflag,
+                           signed int data);
 
 #endif
