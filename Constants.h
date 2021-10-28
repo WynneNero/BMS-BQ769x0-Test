@@ -46,7 +46,7 @@
 //----------------------------------
 //Current Sense Resistor        = 4mOhms
 #define SETUP_PROTECT1          0x89    //SCD=6.7A, 80uS
-#define SETUP_PROTECT2          0x45    //OCD=4.4A, 160mS
+#define SETUP_PROTECT2          0x47    //OCD=4.4A, 160mS
 #define SETUP_PROTECT3          0xB0    //OV in 8S, UV in 8S
 #define SETUP_OV_TRIP           0xFF    //Over Voltage Trip Threshold
 #define SETUP_UV_TRIP           0x01    //Under Voltage Trip Threshold

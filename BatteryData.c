@@ -153,7 +153,7 @@ void Update_VCells(unsigned char Group)
     CellADCVals[CellIndex+3] = (I2CRXBuf[6] << 8) + I2CRXBuf[7];
     CellADCVals[CellIndex+4] = (I2CRXBuf[8] << 8) + I2CRXBuf[9];
 
-    printf("CellADCVals: "); unsigned int i=0; for (i=0; i<NUMCELLS; i++) printf("%i,", CellADCVals[i]); printf("\n");
+    //printf("CellADCVals: "); unsigned int i=0; for (i=0; i<NUMCELLS; i++) printf("%i,", CellADCVals[i]); printf("\n");
 
 }
 
@@ -242,7 +242,9 @@ int Update_CCReg(void)
 {
     I2C_Read(I2C_BQ769xxADDR, REG_CCREG, 2);
     CCVal = (I2CRXBuf[0] << 8) + I2CRXBuf[1];
-    return CCVal = (~CCVal)+1; // Convert from 2s compliment
+    if(1<<15&CCVal)
+    {   CCVal=-1*((~CCVal)+1);      }
+    return CCVal;
 }
 
 //----------------------------------------------------------------------------------------------------
