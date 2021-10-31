@@ -38,7 +38,7 @@ const bool CellActive[] = {true, true, true, false, true, true, true, true, fals
 // Variables
 unsigned char StatReg;
 unsigned int CellADCVals[15];
-unsigned int CCVal = 0;
+signed int CCVal = 0;
 unsigned char CellIndex=0;
 
 void Set_CHG_DSG_Bits(uint8_t fetbits)
@@ -242,8 +242,8 @@ int Update_CCReg(void)
 {
     I2C_Read(I2C_BQ769xxADDR, REG_CCREG, 2);
     CCVal = (I2CRXBuf[0] << 8) + I2CRXBuf[1];
-    if(1<<15&CCVal)
-    {   CCVal=-1*((~CCVal)+1);      }
+    //if(1<<15&CCVal)
+    //{   CCVal=-1*((~CCVal)+1);      }
     return CCVal;
 }
 

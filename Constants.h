@@ -25,22 +25,22 @@
 #define SETUP_SYS_CTRL2_DSG_ON          0x42
 #define SETUP_SYS_CTRL2_CHG_DSG_OFF     0x40
 
-#define IDBLINK1                118     //0.1A
-#define IDBLINK2                237     //0.2A
-#define IDBLINK3                592     //0.5A
-#define IDBLINK4                1184    //1.0A
-#define IDBLINK5                2370    //2.0A
-#define IDBLINK6                3555    //3.0A
-#define IDBLINK7                4739    //4.0A
-#define ICBLINK1                -118    //-0.1A
-#define ICBLINK2                -237    //-0.2A
-#define ICBLINK3                -355    //-0.3A
-#define ICBLINK4                -829    //-0.7A
-#define ICBLINK5                -1422   //-1.2A
-#define ICBLINK6                -2132   //-1.8A
-#define ICBLINK7                -2843   //-2.4A
-#define BCPD_Thresh             3554    //3.0A
-#define MCPD_Thresh             4265    //3.6A
+#define IDBLINK1                -118     //0.1A
+#define IDBLINK2                -237     //0.2A
+#define IDBLINK3                -592     //0.5A
+#define IDBLINK4                -1184    //1.0A
+#define IDBLINK5                -2370    //2.0A
+#define IDBLINK6                -3555    //3.0A
+#define IDBLINK7                -4739    //4.0A
+#define ICBLINK1                118    //-0.1A
+#define ICBLINK2                237    //-0.2A
+#define ICBLINK3                355    //-0.3A
+#define ICBLINK4                829    //-0.7A
+#define ICBLINK5                1422   //-1.2A
+#define ICBLINK6                2132   //-1.8A
+#define ICBLINK7                2843   //-2.4A
+#define BCPD_Thresh             -3554    //3.0A
+#define MCPD_Thresh             -4265    //3.6A
 
 
 //----------------------------------

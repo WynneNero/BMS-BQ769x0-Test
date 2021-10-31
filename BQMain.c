@@ -71,7 +71,7 @@ unsigned int SYS_Checkin_CT = 0;
 unsigned int Cell_VMax = 0;
 unsigned int Cell_VMin = 0;
 signed int IMeasured = 0;
-signed int IOffset = -334;
+signed int IOffset = 334;
 
 //----------------------------------------------------------------------------------------------------
 // Struct Initializations:
@@ -80,8 +80,8 @@ signed int IOffset = -334;
 // LEDName = PXOUT, Pin_Red, Pin_Green, LED_Mode, LED_Color, Blinks_LIM, Blinks_CT
 //#pragma PERSISTENT(LEDA);
 //#pragma PERSISTENT(LEDB);
-extern BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
-extern BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, 1, 0, 0};
+extern BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_OFF, 1, 0, 0, 0};
+extern BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_OFF, 1, 0, 0, 0};
 
 //Faults:
 static Qual_AFE_t OVP_Latch = {2, 0x00};
@@ -93,16 +93,14 @@ static Qual_MCU_t UVP_Clear = {POSITIVE, 0x1771, 0x1770, 0, 20};
 static FaultPair_AFE_MCU_t UVP_Pair =  {CLEARED, &UVP_Latch, &UVP_Clear, BIT3, 0, 7, BiColor_RED};
 
 static Qual_AFE_t OCPD_Latch = {0, 0x00};
-static Qual_MCU_t OCPD_Clear = {POSITIVE, 0x0010, 0x0010, 0, 80};
+static Qual_MCU_t OCPD_Clear = {NEGATIVE, 0x0010, 0x0010, 0, 80};
 static FaultPair_AFE_MCU_t OCPD_Pair =  {CLEARED, &OCPD_Latch, &OCPD_Clear, BIT0, 0, 5, BiColor_RED};
 
-static Qual_MCU_t BCPD_Latch = {POSITIVE, 0x0000, BCPD_Thresh, 0, 4};
+static Qual_MCU_t BCPD_Latch = {NEGATIVE, 0x0000, BCPD_Thresh, 0, 4};
 static Qual_AUR_t BCPD_Clear = {false, 0, 40, 0, 3, false};
 static FaultPair_MCU_AUR_t BCPD_Pair =  {CLEARED, &BCPD_Latch, &BCPD_Clear, 0, 4, BiColor_RED};
 
-static Qual_MCU_t MCPD_Latch = {POSITIVE, 0x0000, MCPD_Thresh
-
-                                , 0, 40};
+static Qual_MCU_t MCPD_Latch = {NEGATIVE, 0x0000, MCPD_Thresh, 0, 40};
 static Qual_AUR_t MCPD_Clear = {false, 0, 40, 0, 3, false};
 static FaultPair_MCU_AUR_t MCPD_Pair =  {CLEARED, &MCPD_Latch, &MCPD_Clear, 0, 3, BiColor_RED};
 
@@ -318,33 +316,34 @@ void Alert_Handler()
         IMeasured-=IOffset;
     }
 
-    if(IMeasured<IDBLINK1 && IMeasured>ICBLINK1)
+    if(IMeasured>IDBLINK1 && IMeasured<ICBLINK1)
     {   Set_LED_Blinks(&LEDA, BiColor_YELLOW, 1);  }
-    else if(IMeasured<IDBLINK2 && IMeasured>IDBLINK1)
-    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 1);   }
-    else if(IMeasured<IDBLINK3 && IMeasured>IDBLINK2)
-    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 2);   }
-    else if(IMeasured<IDBLINK4 && IMeasured>IDBLINK3)
-    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 3);   }
-    else if(IMeasured<IDBLINK5 && IMeasured>IDBLINK4)
-    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 4);   }
-    else if(IMeasured<IDBLINK6 && IMeasured>IDBLINK5)
-    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 5);   }
-    else if(IMeasured<IDBLINK7 && IMeasured>IDBLINK6)
-    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 6);   }
 
-    if(IMeasured>ICBLINK2 && IMeasured<ICBLINK1)
+    else if(IMeasured>IDBLINK2 && IMeasured<IDBLINK1)
     {   Set_LED_Blinks(&LEDA, BiColor_RED, 1);   }
-    else if(IMeasured>ICBLINK3 && IMeasured<ICBLINK2)
+    else if(IMeasured>IDBLINK3 && IMeasured<IDBLINK2)
     {   Set_LED_Blinks(&LEDA, BiColor_RED, 2);   }
-    else if(IMeasured>ICBLINK4 && IMeasured<ICBLINK3)
+    else if(IMeasured>IDBLINK4 && IMeasured<IDBLINK3)
     {   Set_LED_Blinks(&LEDA, BiColor_RED, 3);   }
-    else if(IMeasured>ICBLINK5 && IMeasured<ICBLINK4)
+    else if(IMeasured>IDBLINK5 && IMeasured<IDBLINK4)
     {   Set_LED_Blinks(&LEDA, BiColor_RED, 4);   }
-    else if(IMeasured>ICBLINK6 && IMeasured<ICBLINK5)
+    else if(IMeasured>IDBLINK6 && IMeasured<IDBLINK5)
     {   Set_LED_Blinks(&LEDA, BiColor_RED, 5);   }
-    else if(IMeasured>ICBLINK7 && IMeasured<ICBLINK6)
+    else if(IMeasured>IDBLINK7 && IMeasured<IDBLINK6)
     {   Set_LED_Blinks(&LEDA, BiColor_RED, 6);   }
+
+    if(IMeasured<ICBLINK2 && IMeasured>ICBLINK1)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 1);   }
+    else if(IMeasured<ICBLINK3 && IMeasured>ICBLINK2)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 2);   }
+    else if(IMeasured<ICBLINK4 && IMeasured>ICBLINK3)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 3);   }
+    else if(IMeasured<ICBLINK5 && IMeasured>ICBLINK4)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 4);   }
+    else if(IMeasured<ICBLINK6 && IMeasured>ICBLINK5)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 5);   }
+    else if(IMeasured<ICBLINK7 && IMeasured>ICBLINK6)
+    {   Set_LED_Blinks(&LEDA, BiColor_GREEN, 6);   }
 }
 
 //----------------------------------------------------------------------------------------------------

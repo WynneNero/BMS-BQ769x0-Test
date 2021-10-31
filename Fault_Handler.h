@@ -47,8 +47,8 @@ bool QualHandler_AFE (Qual_AFE_t *qual);
 typedef struct
 {
     Polarity_t Polarity;
-    unsigned int Value;
-    unsigned int TripThresh;
+    signed int Value;
+    signed int TripThresh;
     unsigned int QualedSample_CT;
     unsigned int QualedSample_LIM;
 } Qual_MCU_t;
