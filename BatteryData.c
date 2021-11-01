@@ -50,6 +50,26 @@ void Set_CHG_DSG_Bits(uint8_t fetbits)
 }
 
 //----------------------------------------------------------------------------------------------------
+// Configure the BQ769x0 in the desired manner and confirm
+void Init_BMSConfig(void)
+{
+    I2CTXBuf[0]=SETUP_SYS_CTRL2;
+    I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);           //Enable Coulomb Counting and Alert
+    I2C_Read(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);            //Confirm Proper Sys Config
+
+    I2CTXBuf[0]=SETUP_PROTECT1;
+    I2CTXBuf[1]=SETUP_PROTECT2;
+    I2CTXBuf[2]=SETUP_PROTECT3;
+    //I2CTXBuf[3]=SETUP_OV_TRIP;
+    //I2CTXBuf[4]=SETUP_UV_TRIP;
+    I2C_Write(I2C_BQ769xxADDR, REG_PROTECT1, 3);           //Setup OCP and SCP Thresholds
+
+    Update_SysStat();
+    Clear_SysStat();
+}
+
+
+//----------------------------------------------------------------------------------------------------
 // Update Status Register
 unsigned char Update_SysStat(void)
 {
@@ -76,24 +96,7 @@ void Clear_CCReady(void)
     I2C_Write(I2C_BQ769xxADDR, REG_SYS_STAT, 1);     //Clear the System Status Register
 }
 
-//----------------------------------------------------------------------------------------------------
-// Configure the BQ769x0 in the desired manner and confirm
-void Init_BMSConfig(void)
-{
-    I2CTXBuf[0]=SETUP_SYS_CTRL2;
-    I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);           //Enable Coulomb Counting and Alert
-    I2C_Read(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);            //Confirm Proper Sys Config
 
-    I2CTXBuf[0]=SETUP_PROTECT1;
-    I2CTXBuf[1]=SETUP_PROTECT2;
-    I2CTXBuf[2]=SETUP_PROTECT3;
-    //I2CTXBuf[3]=SETUP_OV_TRIP;
-    //I2CTXBuf[4]=SETUP_UV_TRIP;
-    I2C_Write(I2C_BQ769xxADDR, REG_PROTECT1, 3);           //Setup OCP and SCP Thresholds
-
-    Update_SysStat();
-    Clear_SysStat();
-}
 
 //----------------------------------------------------------------------------------------------------
 bool GetBit_CCReady(void)

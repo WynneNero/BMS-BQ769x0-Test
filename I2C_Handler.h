@@ -10,11 +10,15 @@
 #ifndef I2C_HANDLER_H
 #define I2C_HANDLER_H
 
+#include <msp430.h>
+#include <stdbool.h>
+#include <stdint.h>
+
 //----------------------------------------------------------------------------------------------------
 // Function Prototypes
 void Init_I2C();
-void I2C_Write(unsigned char Addr, unsigned int Reg, unsigned int NumBytes);
-void I2C_Read(unsigned char Addr, unsigned int Reg, unsigned int NumBytes);
+bool I2C_Write(uint8_t Addr, uint8_t CtrlReg, uint8_t NumBytes);
+bool I2C_Read(uint8_t Addr, uint8_t CtrlReg, uint8_t NumBytes);
 
 //----------------------------------------------------------------------------------------------------
 // Global Variables

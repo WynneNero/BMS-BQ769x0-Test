@@ -9,6 +9,7 @@
 ----------------------------------------------------------------------------------------------------*/
 #include <msp430.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "Constants.h"
 #include "I2C_Handler.h"
 #include "Fault_Handler.h"
@@ -135,7 +136,7 @@ int main(void)
     {
         __bis_SR_register(LPM0_bits|GIE);   // Enter LPM0 w/ interrupt
         __delay_cycles(10);
-        __bic_SR_register(GIE); // Disable global interrupts
+        //__bic_SR_register(GIE); // Disable global interrupts
 
 
         //------------------------------------------------------------------------------------------
