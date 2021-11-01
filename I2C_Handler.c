@@ -74,7 +74,7 @@ void Init_I2C()
     UCB0CTLW0 |= UCSWRST;                       // Software reset enabled
     UCB0CTLW0 |= UCMODE_3 | UCMST | UCSYNC;     // I2C mode, Master mode, sync
     //UCB0CTLW1 |= UCASTP_2;                    // Automatic stop generated after UCB0TBCNT is reached
-    UCB0BRW = 0x0008;                           // baudrate = SMCLK / 8
+    UCB0BRW = 0x0008;                          // baudrate = SMCLK / 10
     //UCB0TBCNT = 0x0002;                       // number of bytes to be received
     UCB0I2CSA = I2C_BQ769xxADDR;                // Slave address
     UCB0CTLW0 |= UCTR;                          //I2C Transmit Mode

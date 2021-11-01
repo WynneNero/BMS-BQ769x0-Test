@@ -135,7 +135,7 @@ int main(void)
     {
         __bis_SR_register(LPM0_bits|GIE);   // Enter LPM0 w/ interrupt
         __delay_cycles(10);
-        //__bic_SR_register(GIE); // Disable global interrupts
+        __bic_SR_register(GIE); // Disable global interrupts
 
 
         //------------------------------------------------------------------------------------------
@@ -143,40 +143,18 @@ int main(void)
         // If a protection is triggered
         if(Flag_AFEALRT)
         {
-            //HERE IS ITS!!! The grandiose state machine that calls all the shots:
-            switch(SYS_State)
-            {
-            //--------------------------------------------------------------------------------
-            case SYS_INIT:
+            Alert_Handler();
 
-                Update_SysStat();
-                Clear_SysStat();
+            Update_VCells(GroupA);
+            Update_VCells(GroupB);
 
-                Set_LED_Static(&LEDB, BiColor_OFF);
-                Set_LED_Blinks(&LEDA, BiColor_YELLOW, 1);
+            Cell_VMax = Get_VCell_Max();
+            Cell_VMin = Get_VCell_Min();
 
-                SYS_State=SYS_RUN;
-                SYS_Checkin_CT=0;
+            Fault_Handler();
 
-                break;
-            //--------------------------------------------------------------------------------
-            case SYS_RUN:
+            SYS_Checkin_CT=0;
 
-                //Update_SysStat();
-                Alert_Handler();
-
-                Update_VCells(GroupA);
-                Update_VCells(GroupB);
-
-                Cell_VMax = Get_VCell_Max();
-                Cell_VMin = Get_VCell_Min();
-
-                Fault_Handler();
-
-                SYS_Checkin_CT=0;
-                break;
-
-            }
             DBUGOUT_POUT &= ~DBUGOUT_2;
             Flag_AFEALRT=false;
         }

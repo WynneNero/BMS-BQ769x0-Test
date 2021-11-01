@@ -123,7 +123,7 @@ unsigned char GetByte_SysStat()
 // Update Cell Voltages from I2C Buffer
 void Update_VCells(unsigned char Group)
 {
-    char GroupReg;
+    unsigned int GroupReg;
 
     switch (Group)
     {
