@@ -60,6 +60,37 @@ bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair,
 }
 
 //----------------------------------------------------------------------------------------------------
+bool FaultHandler_AFE_AUR (FaultPair_AFE_AUR_t *pair,
+                           BiColorLED_t *led,
+                           bool clearflag,
+                           signed int data)
+
+{
+    switch(pair->State)
+    {
+    case CLEARED:
+        if(QualHandler_AFE(pair->Latch)==true)
+        {
+            Set_LED_Blinks (led, pair->Fault_Color, pair->Fault_NumBlinks);
+            pair->State=TRIPPED;
+            return false;
+        }
+        break;
+    case TRIPPED:
+        //if(QualHandler_AUR(pair->Clear))
+        if(clearflag)
+        {
+            pair->State=CLEARED;
+              return true;
+        }
+        break;
+    }
+
+    return false;
+}
+
+
+//----------------------------------------------------------------------------------------------------
 bool FaultHandler_MCU_AUR (FaultPair_MCU_AUR_t *pair,
                            BiColorLED_t *led,
                            bool clearflag,

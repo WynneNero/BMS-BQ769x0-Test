@@ -83,7 +83,7 @@ unsigned char Update_SysStat(void)
 // (Which will actually clear them, somewhat confusing)
 void Clear_SysStat(void)
 {
-    I2CTXBuf[0]=StatReg;
+    I2CTXBuf[0]=0xFF;
     I2C_Write(I2C_BQ769xxADDR, REG_SYS_STAT, 1);     //Clear the System Status Register
 }
 

@@ -93,9 +93,13 @@ static Qual_AFE_t UVP_Latch = {3, 0x00};
 static Qual_MCU_t UVP_Clear = {POSITIVE, 0x1771, 0x1770, 0, 20};
 static FaultPair_AFE_MCU_t UVP_Pair =  {CLEARED, &UVP_Latch, &UVP_Clear, BIT3, 0, 7, BiColor_RED};
 
+static Qual_AFE_t SCPD_Latch = {0, 0x00};
+static Qual_AUR_t SCPD_Clear = {false, 0, 40, 0, 3, false};;
+static FaultPair_AFE_AUR_t SCPD_Pair =  {CLEARED, &SCPD_Latch, &SCPD_Clear, BIT1, 0, 6, BiColor_RED};
+
 static Qual_AFE_t OCPD_Latch = {0, 0x00};
-static Qual_MCU_t OCPD_Clear = {NEGATIVE, 0x0010, 0x0010, 0, 80};
-static FaultPair_AFE_MCU_t OCPD_Pair =  {CLEARED, &OCPD_Latch, &OCPD_Clear, BIT0, 0, 5, BiColor_RED};
+static Qual_AUR_t OCPD_Clear = {false, 0, 40, 0, 3, false};;
+static FaultPair_AFE_AUR_t OCPD_Pair =  {CLEARED, &OCPD_Latch, &OCPD_Clear, BIT0, 0, 5, BiColor_RED};
 
 static Qual_MCU_t BCPD_Latch = {NEGATIVE, 0x0000, BCPD_Thresh, 0, 4};
 static Qual_AUR_t BCPD_Clear = {false, 0, 40, 0, 3, false};
@@ -104,6 +108,14 @@ static FaultPair_MCU_AUR_t BCPD_Pair =  {CLEARED, &BCPD_Latch, &BCPD_Clear, 0, 4
 static Qual_MCU_t MCPD_Latch = {NEGATIVE, 0x0000, MCPD_Thresh, 0, 40};
 static Qual_AUR_t MCPD_Clear = {false, 0, 40, 0, 3, false};
 static FaultPair_MCU_AUR_t MCPD_Pair =  {CLEARED, &MCPD_Latch, &MCPD_Clear, 0, 3, BiColor_RED};
+
+static Qual_MCU_t BCPC_Latch = {POSITIVE, 0x0000, BCPC_Thresh, 0, 4};
+static Qual_AUR_t BCPC_Clear = {false, 0, 40, 0, 3, false};
+static FaultPair_MCU_AUR_t BCPC_Pair =  {CLEARED, &BCPC_Latch, &BCPD_Clear, 0, 4, BiColor_GREEN};
+
+static Qual_MCU_t MCPC_Latch = {POSITIVE, 0x0000, MCPC_Thresh, 0, 40};
+static Qual_AUR_t MCPC_Clear = {false, 0, 40, 0, 3, false};
+static FaultPair_MCU_AUR_t MCPC_Pair =  {CLEARED, &MCPC_Latch, &MCPC_Clear, 0, 3, BiColor_GREEN};
 
 
 //----------------------------------------------------------------------------------------------------
@@ -120,6 +132,7 @@ void Fault_Handler(void);
 int main(void)
 {
     // MCU Startup Initialization:
+
     Init_GPIO();
     Init_Sys();
     Init_I2C();
@@ -167,7 +180,7 @@ int main(void)
         {
 
             //DBUGOUT_POUT |= DBUGOUT_2;
-            __delay_cycles(10);
+              __delay_cycles(10);
 
             //LED Blink handlers called here to do blinks if called for:
             LED_BlinkHandler(&LEDA, Cycle_Period_CT);
@@ -291,9 +304,11 @@ void Alert_Handler()
     if(GetBit_CCReady())
     {   //First get the Coulomb counter here, then clear
         IMeasured = Update_CCReg();
-        Clear_CCReady();
+        //Clear_CCReady();
         IMeasured-=IOffset;
     }
+
+    Clear_SysStat();
 
     if(IMeasured>IDBLINK1 && IMeasured<ICBLINK1)
     {   Set_LED_Blinks(&LEDA, BiColor_YELLOW, 1);  }
@@ -328,14 +343,21 @@ void Alert_Handler()
 //----------------------------------------------------------------------------------------------------
 void Fault_Handler(void)
 {
-    FaultHandler_AFE_MCU(&OVP_Pair, &LEDB, &ClearBits, Cell_VMax);
-    FaultHandler_AFE_MCU(&UVP_Pair, &LEDB, &ClearBits, Cell_VMin);
-    //FaultHandler_AFE_MCU(&SCPD_Pair, &LEDB, &ClearBits, Cell_VMin);
-    //FaultHandler_AFE_MCU(&OCPD_Pair, &LEDB, &ClearBits, Cell_VMin);
-    //FaultHandler_MCU_AUR(&BCPD_Pair, &LEDB, IMeasured);
+    //Respective fault handlers, priority from lowest to highest for LED indication
+    //MCU-AUR Current in charge protections
+    FaultHandler_MCU_AUR(&MCPC_Pair, &LEDB, Flag_USRRST, IMeasured);
+    FaultHandler_MCU_AUR(&BCPC_Pair, &LEDB, Flag_USRRST, IMeasured);
+    //MCU-AUR Current in discharge protections
     FaultHandler_MCU_AUR(&MCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
-    //FaultHandler_MCU_AUR(&MCPC_Pair, &LEDB, IMeasured);
-    //FaultHandler_MCU_AUR(&BCPC_Pair, &LEDB, IMeasured);
+    FaultHandler_MCU_AUR(&BCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
+    //AFE-AUR Current in discharge protections
+    FaultHandler_AFE_AUR(&OCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
+    FaultHandler_AFE_AUR(&SCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
+    //AFE-MCU Voltage Protections
+    FaultHandler_AFE_MCU(&UVP_Pair, &LEDB, &ClearBits, Cell_VMin);
+    FaultHandler_AFE_MCU(&OVP_Pair, &LEDB, &ClearBits, Cell_VMax);
+
+
 
     if(Flag_USRRST)
     {   Flag_USRRST=false;  }
@@ -347,19 +369,22 @@ void Fault_Handler(void)
     {   FETBits |= BIT0;                    }
 
     //Protections which inhibit DSG FET:
-    if(UVP_Pair.State==TRIPPED||MCPD_Pair.State==TRIPPED)
+
+    if(MCPC_Pair.State==TRIPPED || BCPC_Pair.State==TRIPPED || MCPD_Pair.State==TRIPPED || BCPD_Pair.State==TRIPPED ||
+       OCPD_Pair.State==TRIPPED || SCPD_Pair.State==TRIPPED || UVP_Pair.State==TRIPPED)
     {   FETBits &= ~BIT1;                   }
 
-    if(UVP_Pair.State==CLEARED&&MCPD_Pair.State==CLEARED)
+    if(MCPC_Pair.State==CLEARED && BCPC_Pair.State==CLEARED && MCPD_Pair.State==CLEARED && BCPD_Pair.State==CLEARED &&
+       OCPD_Pair.State==CLEARED && SCPD_Pair.State==CLEARED && UVP_Pair.State==CLEARED)
     {   FETBits |= BIT1;                    }
 
     //If you do the same type of statement for things that trip both FETs you will override previous
     //states, so include the statements for things like OTPB in BOTH CHG and DSG inhibit statements
 
     ///For AFE Drive protection Latching, write 1 to clear if respective faults were recovered from
-    if(ClearBits!=0x00)
-    {   Clear_FaultBits(ClearBits);
-        ClearBits=0x00;                     }
+    //if(ClearBits!=0x00)
+    //{   Clear_FaultBits(ClearBits);
+    //    ClearBits=0x00;                     }
 
     //If there is a change in CHG or DSG, set the respective FET bits:
     if(FETBits!=PrevFETBits)
@@ -380,6 +405,11 @@ __interrupt void Port_1(void)
     P1IFG &= ~BIT1;                             // Clear P1.1 IFG
     DBUGOUT_POUT |= DBUGOUT_2;
     Flag_AFEALRT=true;
+    __no_operation();
+    __no_operation();
+    __no_operation();
+
+    DBUGOUT_POUT &= ~DBUGOUT_2;
     __bic_SR_register_on_exit(LPM0_bits);       // Exit LPM3
 }
 
@@ -409,6 +439,7 @@ __interrupt void TIMER0_B1_ISR(void)
             Cycle_Period_CT++;
             SYS_Checkin_CT++;
             Flag_LEDBTN = true;
+            DBUGOUT_POUT &= ~DBUGOUT_1;
             __bic_SR_register_on_exit(LPM0_bits);
             break;
         case TB0IV_TBCCR2:

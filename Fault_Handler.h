@@ -106,7 +106,8 @@ typedef struct
 
 bool FaultHandler_AFE_AUR (FaultPair_AFE_AUR_t *pair,
                            BiColorLED_t *led,
-                           uint8_t *clearbits);
+                           bool clearflag,
+                           signed int data);
 
 //----------------------------------------------------------------------------------------------------
 // Main fault pair for referencing Latch/Clear structs
