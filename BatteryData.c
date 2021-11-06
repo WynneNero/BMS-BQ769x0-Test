@@ -38,6 +38,7 @@ const bool CellActive[] = {true, true, true, false, true, true, true, true, fals
 // Variables
 unsigned char StatReg;
 unsigned int CellADCVals[15];
+unsigned int TempADCVals[3];
 signed int CCVal = 0;
 unsigned char CellIndex=0;
 
@@ -53,9 +54,20 @@ void Set_CHG_DSG_Bits(uint8_t fetbits)
 // Configure the BQ769x0 in the desired manner and confirm
 void Init_BMSConfig(void)
 {
-    I2CTXBuf[0]=SETUP_SYS_CTRL2;
-    I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);           //Enable Coulomb Counting and Alert
-    I2C_Read(I2C_BQ769xxADDR, REG_SYS_CTRL2, 1);            //Confirm Proper Sys Config
+
+    I2CTXBuf[0]=SETUP_SYS_CTRL1;
+    I2CTXBuf[1]=SETUP_SYS_CTRL2;
+    I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL1, 2);           //Enable Coulomb Counting and Alert
+
+    __no_operation();
+    __no_operation();
+    __no_operation();
+
+    I2C_Read(I2C_BQ769xxADDR, REG_SYS_CTRL1, 2);            //Confirm Proper Sys Config
+
+    //I2CTXBuf[0]=SETUP_SYS_CTRL1;
+    //I2C_Write(I2C_BQ769xxADDR, REG_SYS_CTRL1, 1);           //Enable Coulomb Counting and Alert
+    //I2C_Read(I2C_BQ769xxADDR, REG_SYS_CTRL1, 1);            //Confirm Proper Sys Config
 
     I2CTXBuf[0]=SETUP_PROTECT1;
     I2CTXBuf[1]=SETUP_PROTECT2;
@@ -255,3 +267,11 @@ int Get_CCVal_ADC(void)
 {
     return CCVal;
 }
+
+void Update_TSReg()
+{
+    I2C_Read(I2C_BQ769xxADDR, REG_TS1, 4);
+    TempADCVals[0] = (I2CRXBuf[0] << 8) + I2CRXBuf[1];
+    TempADCVals[1] = (I2CRXBuf[2] << 8) + I2CRXBuf[3];
+}
+

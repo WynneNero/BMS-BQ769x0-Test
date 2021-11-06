@@ -161,6 +161,7 @@ int main(void)
 
             Update_VCells(GroupA);
             Update_VCells(GroupB);
+            Update_TSReg();
 
             Cell_VMax = Get_VCell_Max();
             Cell_VMin = Get_VCell_Min();

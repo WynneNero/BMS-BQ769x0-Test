@@ -17,7 +17,7 @@
 // Constants
 #define I2C_BQ769xxADDR         0x18
 //----------------------------------
-#define SETUP_SYS_CTRL1         0x10    //ADC Enabled
+#define SETUP_SYS_CTRL1         0x18    //ADC Enabled
 #define SETUP_SYS_CTRL2         0x43
 //Coulomb Counter Enabled
 #define SETUP_SYS_CTRL2_CHG_ON          0x41
