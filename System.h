@@ -18,75 +18,12 @@
 //----------------------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------------------
-// Enumerations
+// Defines and Enumerations
 
-//----------------------------------------------------------------------------------------------------
-// Possible Modes a BiColor LED can be operating in
-typedef enum
-{
-    LEDMode_STATIC,
-    LEDMode_BLINK
-} LEDMode_t;
+#define BTN_PRESSED_LIM 3
+#define BTN_LONGPRESS_LIM 80
 
-//----------------------------------------------------------------------------------------------------
-// Enumerations for types of colors a RG BiColor LED can be
-typedef enum
-{
-    BiColor_OFF,
-    BiColor_RED,
-    BiColor_YELLOW,
-    BiColor_GREEN
-} BiColor_t;
-
-//----------------------------------------------------------------------------------------------------
-// Structs
-
-//----------------------------------------------------------------------------------------------------
-// ColorState struct holds the value for each LED pin based on the color chosen
-typedef struct
-{
-    uint8_t red;
-    uint8_t green;
-} ColorState_t;
-
-//----------------------------------------------------------------------------------------------------
-// Struct for holding all data needed about a specific BiColor LED
-typedef struct
-{
-    //Data for all modes:
-    volatile unsigned char *PXOUT;
-    unsigned int Pin_Red;
-    unsigned int Pin_Green;
-    LEDMode_t LED_Mode;
-
-    //Data for Blink Mode:
-    BiColor_t LED_Color;
-    BiColor_t Next_Color;
-    unsigned int Blink_PeriodCT;
-    unsigned int Blinks_LIM;
-    unsigned int Next_LIM;
-    unsigned int Blinks_CT;
-
-} BiColorLED_t;
-
-//----------------------------------------------------------------------------------------------------
-// Function Prototypes
-
-void Init_GPIO(void);
-void Init_Sys(void);
-
-void Setup_LEDs(void);
-void Setup_Buttons(void);
-void Setup_GateDriver(void);
-void Set_ChargePump_On(void);
-void Set_ChargePump_Off(void);
-
-void Register_Bit_Set(volatile unsigned char *reg, unsigned int bit, unsigned int value);
-void Set_LED_Static (BiColorLED_t *led, BiColor_t color);
-void Set_LED_Blinks (BiColorLED_t *led, BiColor_t color, unsigned int blinks);
-void LED_BlinkHandler(BiColorLED_t *led, unsigned int cycleCT);
-
-//----------------------------------------------------------------------------------------------------
+//--------------------------------------------------
 // GPIO Mappings
 
 // Port Mapping for I2C_AFE
@@ -155,9 +92,97 @@ void LED_BlinkHandler(BiColorLED_t *led, unsigned int cycleCT);
 #define DBUGOUT_1 BIT4
 #define DBUGOUT_2 BIT5
 
+
+//----------------------------------------------------------------------------------------------------
+// This enumeration names the states of the button handler state machine
+typedef enum BTNMode_enum
+{   NPRESSED,
+    PRESSED,
+    SHORT_PRESSED,
+    LONG_PRESSED,
+    LONG_IDLE
+} BTNState_t;
+
+//----------------------------------------------------------------------------------------------------
+// Possible Modes a BiColor LED can be operating in
+typedef enum
+{   LEDMode_STATIC,
+    LEDMode_BLINK
+} LEDMode_t;
+
+//----------------------------------------------------------------------------------------------------
+// Enumerations for types of colors a RG BiColor LED can be
+typedef enum
+{   BiColor_OFF,
+    BiColor_RED,
+    BiColor_YELLOW,
+    BiColor_GREEN
+} BiColor_t;
+
+//----------------------------------------------------------------------------------------------------
+// Structs
+
+//----------------------------------------------------------------------------------------------------
+// Button struct stores relevant registers and counters for each button
+typedef struct
+{   volatile unsigned char *PXIN;
+    unsigned int Pin;
+    unsigned int BTN_CT;
+    BTNState_t State;
+} Button_t;
+
+//----------------------------------------------------------------------------------------------------
+// ColorState struct holds the value for each LED pin based on the color chosen
+typedef struct
+{   uint8_t red;
+    uint8_t green;
+} ColorState_t;
+
+//----------------------------------------------------------------------------------------------------
+// Struct for holding all data needed about a specific BiColor LED
+typedef struct
+{   //Data for all modes:
+    volatile unsigned char *PXOUT;
+    unsigned int Pin_Red;
+    unsigned int Pin_Green;
+    LEDMode_t LED_Mode;
+
+    //Data for Blink Mode:
+    BiColor_t LED_Color;
+    BiColor_t Next_Color;
+    unsigned int Blink_PeriodCT;
+    unsigned int Blinks_LIM;
+    unsigned int Next_LIM;
+    unsigned int Blinks_CT;
+
+} BiColorLED_t;
+
+//----------------------------------------------------------------------------------------------------
+// Function Prototypes
+void Init_GPIO(void);
+void Init_Sys(void);
+
+void Setup_LEDs(void);
+void Setup_Buttons(void);
+void Setup_GateDriver(void);
+
+void Set_ChargePump_On(void);
+void Set_ChargePump_Off(void);
+
+void Register_Bit_Set(volatile unsigned char *reg, unsigned int bit, unsigned int value);
+uint8_t Register_Bit_Get(volatile unsigned char *reg, unsigned int bit);
+
+void Set_LED_Static (BiColorLED_t *led, BiColor_t color);
+void Set_LED_Blinks (BiColorLED_t *led, BiColor_t color, unsigned int blinks);
+void LED_BlinkHandler(BiColorLED_t *led, unsigned int cycleCT);
+BTNState_t Button_Handler(Button_t *button);
+
 //------------------------------------------------------
 // (KRS) export LEDs so you can access them from other files
 extern BiColorLED_t LEDA;
 extern BiColorLED_t LEDB;
+
+extern Button_t BTN_PWR;
+extern Button_t BTN_FLT;
 
 #endif

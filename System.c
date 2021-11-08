@@ -98,6 +98,11 @@ void Setup_Buttons(void)
     BTNPWR_POUT |= BTNPWR;      // Set Button Pin Pullup resistor
     BTNPWR_PREN |= BTNPWR;      // Enable Button Pin Pullup/down Resistor
 
+    BTNFLT_POUT &= ~BTNFLT;     // Clear Button Pin output latch for a defined power-on state
+    BTNFLT_PDIR &= ~BTNFLT;     // Set Button Pin to Input
+    BTNFLT_POUT |= BTNFLT;      // Set Button Pin Pullup resistor
+    BTNFLT_PREN |= BTNFLT;      // Enable Button Pin Pullup/down Resistor
+
     //BTNPWR_IES |= BTNPWR;            // Set Button Pin interrupt from High-to-Low
     //BTNPWR_IE |= BTNPWR;             // Button Pin interrupt enabled
     //BTNPWR_IFG &= ~BTNPWR;           // Button Pin interrupt flag cleared
@@ -141,6 +146,11 @@ void Register_Bit_Set(volatile unsigned char *reg, unsigned int bit, unsigned in
     else
     {   *reg &= ~(1 << bit);    }
 }
+
+//----------------------------------------------------------------------------------------------------
+// Get a bit within a memory register
+uint8_t Register_Bit_Get(volatile unsigned char *reg, unsigned int bit)
+{   return *reg &= (1<<bit);     }
 
 //----------------------------------------------------------------------------------------------------
 // Modify the LED mode - this actually needs to then do something?
@@ -212,4 +222,52 @@ void LED_BlinkHandler(BiColorLED_t *led, unsigned int cycleCT)
     case LEDMode_STATIC:
         break;
     }
+}
+
+//----------------------------------------------------------------------------------------------------
+BTNState_t Button_Handler(Button_t *button)
+{
+    switch(button->State)
+    {
+        case NPRESSED:
+            if((Register_Bit_Get(button->PXIN,button->Pin))==0)
+            {   button->BTN_CT++;
+                button->State=PRESSED;          }
+            return NPRESSED;
+
+        case PRESSED:
+            if((Register_Bit_Get(button->PXIN,button->Pin))==0 &&
+                button->BTN_CT>=BTN_PRESSED_LIM)
+            {   button->BTN_CT++;
+                button->State=SHORT_PRESSED;    }
+            else if((Register_Bit_Get(button->PXIN,button->Pin))==0)
+            {   button->BTN_CT++;               }
+            else if((Register_Bit_Get(button->PXIN,button->Pin))!=0)
+            {   button->BTN_CT=0;
+                button->State=NPRESSED;         }
+            return NPRESSED;
+
+        case SHORT_PRESSED:
+            if((Register_Bit_Get(button->PXIN,button->Pin))==0 &&
+                button->BTN_CT!=BTN_LONGPRESS_LIM)
+            {   button->BTN_CT++;
+                button->State=LONG_PRESSED;
+                return LONG_PRESSED;            }
+            else if((Register_Bit_Get(button->PXIN,button->Pin))==0)
+            {   button->BTN_CT++;               }
+            else if((Register_Bit_Get(button->PXIN,button->Pin))!=0)
+            {   button->BTN_CT=0;
+                button->State=NPRESSED;
+                return SHORT_PRESSED;           }
+            return NPRESSED;
+
+        case LONG_PRESSED:
+            if((Register_Bit_Get(button->PXIN,button->Pin))==0)
+            {   return NPRESSED;                }
+            else if((Register_Bit_Get(button->PXIN,button->Pin))!=0)
+            {   button->BTN_CT=0;
+                button->State=NPRESSED;
+                return NPRESSED;                }
+    }
+    return NPRESSED;
 }

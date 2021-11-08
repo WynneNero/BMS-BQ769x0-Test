@@ -27,8 +27,8 @@ enum CellGroup {GroupNull=0, GroupA=1, GroupB=2, GroupC=3 };
 enum SYS_State {DEEP_SLEEP, SYS_OFF, SYS_INIT, SYS_RUN};
 unsigned int SYS_State = SYS_INIT;
 
-enum ButtonState {NPRESSED, PRESSED, SHORT_PRESSED, LONG_PRESSED, LONG_IDLE};
-unsigned int ButtonState = NPRESSED;
+uint8_t ButtonRet_PWR = NPRESSED;
+uint8_t ButtonRet_FLT = NPRESSED;
 
 
 //----------------------------------------------------------------------------------------------------
@@ -81,6 +81,10 @@ signed int IOffset = 334;
 // LEDName = PXOUT, Pin_Red, Pin_Green, LED_Mode, LED_Color, Blinks_LIM, Blinks_CT
 //#pragma PERSISTENT(LEDA);
 //#pragma PERSISTENT(LEDB);
+
+extern Button_t BTN_PWR = {&P2IN, 2, 0, NPRESSED};
+extern Button_t BTN_FLT = {&P2IN, 3, 0, NPRESSED};
+
 extern BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_OFF, 1, 0, 0, 0};
 extern BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_OFF, 1, 0, 0, 0};
 
@@ -111,7 +115,7 @@ static FaultPair_MCU_AUR_t MCPD_Pair =  {CLEARED, &MCPD_Latch, &MCPD_Clear, 0, 3
 
 static Qual_MCU_t BCPC_Latch = {POSITIVE, 0x0000, BCPC_Thresh, 0, 4};
 static Qual_AUR_t BCPC_Clear = {false, 0, 40, 0, 3, false};
-static FaultPair_MCU_AUR_t BCPC_Pair =  {CLEARED, &BCPC_Latch, &BCPD_Clear, 0, 4, BiColor_GREEN};
+static FaultPair_MCU_AUR_t BCPC_Pair =  {CLEARED, &BCPC_Latch, &BCPC_Clear, 0, 4, BiColor_GREEN};
 
 static Qual_MCU_t MCPC_Latch = {POSITIVE, 0x0000, MCPC_Thresh, 0, 40};
 static Qual_AUR_t MCPC_Clear = {false, 0, 40, 0, 3, false};
@@ -121,10 +125,6 @@ static FaultPair_MCU_AUR_t MCPC_Pair =  {CLEARED, &MCPC_Latch, &MCPC_Clear, 0, 3
 //----------------------------------------------------------------------------------------------------
 //Function prototypes
 void Init_App(void);
-
-unsigned int Button_Handler(void);
-//void LED_Handler(int Mode);
-
 void Alert_Handler(void);
 void Fault_Handler(void);
 
@@ -179,21 +179,27 @@ int main(void)
         // Both button and LED state machines are called here when Timer B0 wakes
         if(Flag_LEDBTN)
         {
-
+            //----------------------------------------------------------------------
+            //Debug calls:
             //DBUGOUT_POUT |= DBUGOUT_2;
               __delay_cycles(10);
 
-            //LED Blink handlers called here to do blinks if called for:
+            //----------------------------------------------------------------------
+            //Button press handler calls:
+            ButtonRet_PWR = Button_Handler(&BTN_PWR);
+            ButtonRet_FLT = Button_Handler(&BTN_FLT);
+
+            //----------------------------------------------------------------------
+            //LED Blink handler calls:
             LED_BlinkHandler(&LEDA, Cycle_Period_CT);
             LED_BlinkHandler(&LEDB, Cycle_Period_CT);
 
             if(Cycle_Period_CT>Cycle_Period_LIM)
             {   Cycle_Period_CT=0;  }
 
-            BTNPWR_Return = Button_Handler();
-            if(BTNPWR_Return==SHORT_PRESSED)
-            {   __delay_cycles(10);     }
-            if(BTNPWR_Return==LONG_PRESSED)
+            if(ButtonRet_PWR==SHORT_PRESSED)
+            {   __delay_cycles(1);     }
+            if(ButtonRet_PWR==LONG_PRESSED)
             {   Flag_USRRST=true;       }
             // This acts as a backup if for some reason the system misses the ALERT interrupt,
             // also convenient when it is masked during debugging:
@@ -239,9 +245,6 @@ void Init_App(void)
     Set_LED_Static(&LEDB, BiColor_OFF);
     __delay_cycles(100000);
 
-
-
-
     // Configure Timer_A for button debounce
     TB0CTL = TBSSEL_1 | TBCLR | TBIE;      // ACLK, count mode, clear TBR, enable interrupt
     TB0CCR0 = 1000;
@@ -249,51 +252,6 @@ void Init_App(void)
     TB0CCTL1 = CCIE;
 
     __delay_cycles(750000);
-}
-
-//----------------------------------------------------------------------------------------------------
-unsigned int Button_Handler(void)
-{
-    switch (ButtonState)
-    {
-        case NPRESSED:
-            if((BTNPWR_PIN&=BTNPWR)==0)
-            {   BTNPWR_CT++;
-                ButtonState=PRESSED;        }
-            return NPRESSED;
-
-        case PRESSED:
-            if((BTNPWR_PIN&=BTNPWR)==0 && BTNPWR_CT>=BTN_PRESSED_LIM)
-            {   BTNPWR_CT++;
-                ButtonState=SHORT_PRESSED;  }
-            else if((BTNPWR_PIN&=BTNPWR)==0)
-            {   BTNPWR_CT++;                }
-            else if(BTNPWR_PIN|=~BTNPWR)
-            {   BTNPWR_CT=0;                }
-            return NPRESSED;
-
-        case SHORT_PRESSED:
-            if((BTNPWR_PIN&=BTNPWR)==0 && BTNPWR_CT>=BTN_LONGPRESS_LIM)
-            {   BTNPWR_CT++;
-                ButtonState=LONG_PRESSED;
-                return LONG_PRESSED;    }
-            else if((BTNPWR_PIN&=BTNPWR)==0)
-            {   BTNPWR_CT++;                }
-            else if(BTNPWR_PIN|=~BTNPWR)
-            {   BTNPWR_CT=0;
-                ButtonState=NPRESSED;
-                return SHORT_PRESSED;       }
-            return NPRESSED;
-
-        case LONG_PRESSED:
-            if((BTNPWR_PIN&=BTNPWR)==0)
-            {   return NPRESSED;            }
-            else if(BTNPWR_PIN|=~BTNPWR)
-            {   BTNPWR_CT=0;
-                ButtonState=NPRESSED;
-                return NPRESSED;            }
-    }
-    return NPRESSED;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -346,19 +304,29 @@ void Fault_Handler(void)
 {
     //Respective fault handlers, priority from lowest to highest for LED indication
     //MCU-AUR Current in charge protections
+
+
     FaultHandler_MCU_AUR(&MCPC_Pair, &LEDB, Flag_USRRST, IMeasured);
     FaultHandler_MCU_AUR(&BCPC_Pair, &LEDB, Flag_USRRST, IMeasured);
     //MCU-AUR Current in discharge protections
     FaultHandler_MCU_AUR(&MCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
     FaultHandler_MCU_AUR(&BCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
+    //MCU Based Battery Over/Under Temperature Protections
+    //FaultHandler_MCU_MCU(&OTPC, &LEDB, TCFET
+    //FaultHandler_MCU_MCU(&OTPD, &LEDB, TDFET
+    //FaultHandler_MCU_MCU(&OTPS, &LEDB, TRSense
+    //FaultHandler_MCU_MCU(&UTPP, &LEDB, TPCB)
+    //FaultHandler_MCU_MCU(&OTPP, &LEDB, TPCB)
+    //FaultHandler_MCU_MCU(&UTPB, &LEDB, TBattery)
+    //FaultHandler_MCU_MCU(&OTPB, &LEDB, TBattery)
     //AFE-AUR Current in discharge protections
     FaultHandler_AFE_AUR(&OCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
     FaultHandler_AFE_AUR(&SCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
     //AFE-MCU Voltage Protections
+    //FaultHandler_MCU_MCU(&CUBN, &LEDB, VDelta_Neg)
+    //FaultHandler_MCU_MCU(&CUBP, &LEDB, VDelta_Pos)
     FaultHandler_AFE_MCU(&UVP_Pair, &LEDB, &ClearBits, Cell_VMin);
     FaultHandler_AFE_MCU(&OVP_Pair, &LEDB, &ClearBits, Cell_VMax);
-
-
 
     if(Flag_USRRST)
     {   Flag_USRRST=false;  }
@@ -406,10 +374,6 @@ __interrupt void Port_1(void)
     P1IFG &= ~BIT1;                             // Clear P1.1 IFG
     DBUGOUT_POUT |= DBUGOUT_2;
     Flag_AFEALRT=true;
-    __no_operation();
-    __no_operation();
-    __no_operation();
-
     DBUGOUT_POUT &= ~DBUGOUT_2;
     __bic_SR_register_on_exit(LPM0_bits);       // Exit LPM3
 }
