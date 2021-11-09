@@ -64,7 +64,6 @@ bool FaultHandler_AFE_AUR (FaultPair_AFE_AUR_t *pair,
                            BiColorLED_t *led,
                            bool clearflag,
                            signed int data)
-
 {
     switch(pair->State)
     {
@@ -95,7 +94,6 @@ bool FaultHandler_MCU_AUR (FaultPair_MCU_AUR_t *pair,
                            BiColorLED_t *led,
                            bool clearflag,
                            signed int data)
-
 {
     switch(pair->State)
     {
@@ -103,7 +101,6 @@ bool FaultHandler_MCU_AUR (FaultPair_MCU_AUR_t *pair,
         pair->Latch->Value = data;
         if(QualHandler_MCU(pair->Latch))
         {
-            Set_LED_Static(led, pair->Fault_Color);
             Set_LED_Blinks (led, pair->Fault_Color, pair->Fault_NumBlinks);
             pair->State=TRIPPED;
             return false;

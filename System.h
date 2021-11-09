@@ -92,6 +92,8 @@
 #define DBUGOUT_1 BIT4
 #define DBUGOUT_2 BIT5
 
+//----------------------------------------------------------------------------------------------------
+// ENUMS
 
 //----------------------------------------------------------------------------------------------------
 // This enumeration names the states of the button handler state machine
@@ -120,7 +122,7 @@ typedef enum
 } BiColor_t;
 
 //----------------------------------------------------------------------------------------------------
-// Structs
+// STRUCTS
 
 //----------------------------------------------------------------------------------------------------
 // Button struct stores relevant registers and counters for each button
@@ -158,12 +160,13 @@ typedef struct
 } BiColorLED_t;
 
 //----------------------------------------------------------------------------------------------------
-// Function Prototypes
+// FUNCTION PROTOTYPES
+
 void Init_GPIO(void);
 void Init_Sys(void);
 
-void Setup_LEDs(void);
 void Setup_Buttons(void);
+void Setup_LEDs(void);
 void Setup_GateDriver(void);
 
 void Set_ChargePump_On(void);
@@ -172,10 +175,11 @@ void Set_ChargePump_Off(void);
 void Register_Bit_Set(volatile unsigned char *reg, unsigned int bit, unsigned int value);
 uint8_t Register_Bit_Get(volatile unsigned char *reg, unsigned int bit);
 
+BTNState_t Button_Handler(Button_t *button);
+
 void Set_LED_Static (BiColorLED_t *led, BiColor_t color);
 void Set_LED_Blinks (BiColorLED_t *led, BiColor_t color, unsigned int blinks);
 void LED_BlinkHandler(BiColorLED_t *led, unsigned int cycleCT);
-BTNState_t Button_Handler(Button_t *button);
 
 //------------------------------------------------------
 // (KRS) export LEDs so you can access them from other files

@@ -1,12 +1,16 @@
 /*----------------------------------------------------------------------------------------------------
- * Project: BMSHP Controller
- * Title: Main.c
+ * //---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//
+ * Project: BMS-LT Controller
+ * Title: BQMain.c
  * Authors: Nathaniel VerLee, Matthew Pennock, 2020-2021
  * Contributors: Ryan Heacock, Kurt Snieckus, Matthew Pennock, 2020-2021
  *
- * This file takes care of all I2C communication including initializations, reading and writing,
- * and any associated interrupt handler routines
+ * This file deals will all high level program flow control and systemn level interrupts.
+ * //---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//
 ----------------------------------------------------------------------------------------------------*/
+
+//----------------------------------------------------------------------------------------------------
+// INCLUDES
 #include <msp430.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -18,10 +22,10 @@
 #include "UART_Interface.h"
 
 //----------------------------------------------------------------------------------------------------
-//Constants
+// CONSTANTS
 
 //----------------------------------------------------------------------------------------------------
-// Enumerations and associated variables
+// ENUMS and associated variables
 enum CellGroup {GroupNull=0, GroupA=1, GroupB=2, GroupC=3 };
 
 enum SYS_State {DEEP_SLEEP, SYS_OFF, SYS_INIT, SYS_RUN};
@@ -29,7 +33,6 @@ unsigned int SYS_State = SYS_INIT;
 
 uint8_t ButtonRet_PWR = NPRESSED;
 uint8_t ButtonRet_FLT = NPRESSED;
-
 
 //----------------------------------------------------------------------------------------------------
 //Flow control flag variables
@@ -39,18 +42,10 @@ bool Flag_AFEALRT = false;
 bool Flag_USRRST = false;
 bool Flag_FAULT = false;
 
-bool BTNA_LongPress = false;
-
-bool Flag_NCHG = false;
-bool Flag_NDSG = false;
-
 uint8_t PrevFETBits=0x03; // DSG_ON=BIT1, CHG_ON=BIT0
 uint8_t FETBits=0x03; // DSG_ON=BIT1, CHG_ON=BIT0
 
 uint8_t ClearBits=0x00;
-
-
-//typedef enum {PRESSED, DBOUNCE1, DBOUNCE2};
 
 //----------------------------------------------------------------------------------------------------
 //Variables and Definitions
@@ -75,15 +70,16 @@ signed int IMeasured = 0;
 signed int IOffset = 334;
 
 //----------------------------------------------------------------------------------------------------
-// Struct Initializations:
+// STRUCT INITS:
+
+//Buttons:
+extern Button_t BTN_PWR = {&P2IN, 2, 0, NPRESSED};
+extern Button_t BTN_FLT = {&P2IN, 3, 0, NPRESSED};
 
 //LEDs:
 // LEDName = PXOUT, Pin_Red, Pin_Green, LED_Mode, LED_Color, Blinks_LIM, Blinks_CT
 //#pragma PERSISTENT(LEDA);
 //#pragma PERSISTENT(LEDB);
-
-extern Button_t BTN_PWR = {&P2IN, 2, 0, NPRESSED};
-extern Button_t BTN_FLT = {&P2IN, 3, 0, NPRESSED};
 
 extern BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_OFF, 1, 0, 0, 0};
 extern BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_OFF, 1, 0, 0, 0};
@@ -123,11 +119,16 @@ static FaultPair_MCU_AUR_t MCPC_Pair =  {CLEARED, &MCPC_Latch, &MCPC_Clear, 0, 3
 
 
 //----------------------------------------------------------------------------------------------------
-//Function prototypes
+// FUNCTION PROTOTYPES:
 void Init_App(void);
+void Init_Timers(void);
 void Alert_Handler(void);
 void Fault_Handler(void);
 
+//----------------------------------------------------------------------------------------------------
+//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//
+// BQMAIN:
+//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//
 //----------------------------------------------------------------------------------------------------
 int main(void)
 {
@@ -141,6 +142,7 @@ int main(void)
     Init_App();
     __delay_cycles(100000);
 
+    Init_Timers();
     TB0CTL |= MC_1;
 
     //Init_UART();
@@ -150,7 +152,6 @@ int main(void)
         __bis_SR_register(LPM0_bits|GIE);   // Enter LPM0 w/ interrupt
         __delay_cycles(10);
         //__bic_SR_register(GIE); // Disable global interrupts
-
 
         //------------------------------------------------------------------------------------------
         // Main Operational State machine is called here after 0.25S Coulomb counter aquisition *OR*
@@ -173,7 +174,6 @@ int main(void)
             DBUGOUT_POUT &= ~DBUGOUT_2;
             Flag_AFEALRT=false;
         }
-
 
         //------------------------------------------------------------------------------------------
         // Both button and LED state machines are called here when Timer B0 wakes
@@ -200,6 +200,7 @@ int main(void)
             if(ButtonRet_PWR==SHORT_PRESSED)
             {   __delay_cycles(1);     }
             if(ButtonRet_PWR==LONG_PRESSED)
+
             {   Flag_USRRST=true;       }
             // This acts as a backup if for some reason the system misses the ALERT interrupt,
             // also convenient when it is masked during debugging:
@@ -214,12 +215,17 @@ int main(void)
 }
 
 //----------------------------------------------------------------------------------------------------
+// Initialize the "app" running in the main loop.
 void Init_App(void)
 {
     WDTCTL = WDTPW | WDTHOLD;
 
     //Blink Green LED60 on system initialization:
     Set_LED_Static(&LEDA, BiColor_RED);
+    __delay_cycles(100000);
+    Set_LED_Static(&LEDA, BiColor_OFF);
+    __delay_cycles(100000);
+    Set_LED_Static(&LEDA, BiColor_YELLOW);
     __delay_cycles(100000);
     Set_LED_Static(&LEDA, BiColor_OFF);
     __delay_cycles(100000);
@@ -240,18 +246,24 @@ void Init_App(void)
     __delay_cycles(100000);
     Set_LED_Static(&LEDB, BiColor_OFF);
     __delay_cycles(100000);
+    Set_LED_Static(&LEDB, BiColor_YELLOW);
+    __delay_cycles(100000);
+    Set_LED_Static(&LEDB, BiColor_OFF);
+    __delay_cycles(100000);
     Set_LED_Static(&LEDB, BiColor_GREEN);
     __delay_cycles(100000);
     Set_LED_Static(&LEDB, BiColor_OFF);
     __delay_cycles(100000);
+}
 
+//----------------------------------------------------------------------------------------------------
+void Init_Timers(void)
+{
     // Configure Timer_A for button debounce
     TB0CTL = TBSSEL_1 | TBCLR | TBIE;      // ACLK, count mode, clear TBR, enable interrupt
     TB0CCR0 = 1000;
     TB0CCR1 = 524;
     TB0CCTL1 = CCIE;
-
-    __delay_cycles(750000);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -300,33 +312,45 @@ void Alert_Handler()
 }
 
 //----------------------------------------------------------------------------------------------------
+// Deal with all of the faults one by one, then adjust FETs accordingly
 void Fault_Handler(void)
 {
-    //Respective fault handlers, priority from lowest to highest for LED indication
+    //Respective fault handlers, priority from lowest to highest for LED indication. Faults that
+    //are lower priority will be masked from user LED indication by higher priority faults, but
+    //will still properly protect when tripped. There are 15 total Protections:
+
+    //----------------------------------------------------------------------
     //MCU-AUR Current in charge protections
-
-
-    FaultHandler_MCU_AUR(&MCPC_Pair, &LEDB, Flag_USRRST, IMeasured);
-    FaultHandler_MCU_AUR(&BCPC_Pair, &LEDB, Flag_USRRST, IMeasured);
+    FaultHandler_MCU_AUR(&MCPC_Pair, &LEDB, Flag_USRRST, IMeasured);        //Priority 15
+    FaultHandler_MCU_AUR(&BCPC_Pair, &LEDB, Flag_USRRST, IMeasured);        //Priority 14
     //MCU-AUR Current in discharge protections
-    FaultHandler_MCU_AUR(&MCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
-    FaultHandler_MCU_AUR(&BCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
+    FaultHandler_MCU_AUR(&MCPD_Pair, &LEDB, Flag_USRRST, IMeasured);        //Priority 13
+    FaultHandler_MCU_AUR(&BCPD_Pair, &LEDB, Flag_USRRST, IMeasured);        //Priority 12
+
+    //----------------------------------------------------------------------
     //MCU Based Battery Over/Under Temperature Protections
-    //FaultHandler_MCU_MCU(&OTPC, &LEDB, TCFET
-    //FaultHandler_MCU_MCU(&OTPD, &LEDB, TDFET
-    //FaultHandler_MCU_MCU(&OTPS, &LEDB, TRSense
-    //FaultHandler_MCU_MCU(&UTPP, &LEDB, TPCB)
-    //FaultHandler_MCU_MCU(&OTPP, &LEDB, TPCB)
-    //FaultHandler_MCU_MCU(&UTPB, &LEDB, TBattery)
-    //FaultHandler_MCU_MCU(&OTPB, &LEDB, TBattery)
+    //FaultHandler_MCU_MCU(&OTPC_Pair, &LEDB, TCFET                         //Priority 11
+    //FaultHandler_MCU_MCU(&OTPD_Pair, &LEDB, TDFET                         //Priority 10
+    //FaultHandler_MCU_MCU(&OTPS_Pair, &LEDB, TRSense                       //Priority 9
+    //FaultHandler_MCU_MCU(&UTPP_Pair, &LEDB, TPCB)                         //Priority 8
+    //FaultHandler_MCU_MCU(&OTPP_Pair, &LEDB, TPCB)                         //Priority 7
+    //FaultHandler_MCU_MCU(&UTPB_Pair, &LEDB, TBattery)                     //Priority 6
+    //FaultHandler_MCU_MCU(&OTPB_Pair, &LEDB, TBattery)                     //Priority 5
+
+    //----------------------------------------------------------------------
     //AFE-AUR Current in discharge protections
-    FaultHandler_AFE_AUR(&OCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
-    FaultHandler_AFE_AUR(&SCPD_Pair, &LEDB, Flag_USRRST, IMeasured);
+    FaultHandler_AFE_AUR(&OCPD_Pair, &LEDB, Flag_USRRST, IMeasured);        //Priority 4
+    FaultHandler_AFE_AUR(&SCPD_Pair, &LEDB, Flag_USRRST, IMeasured);        //Priority 3
+
+    //----------------------------------------------------------------------
     //AFE-MCU Voltage Protections
     //FaultHandler_MCU_MCU(&CUBN, &LEDB, VDelta_Neg)
     //FaultHandler_MCU_MCU(&CUBP, &LEDB, VDelta_Pos)
-    FaultHandler_AFE_MCU(&UVP_Pair, &LEDB, &ClearBits, Cell_VMin);
-    FaultHandler_AFE_MCU(&OVP_Pair, &LEDB, &ClearBits, Cell_VMax);
+    FaultHandler_AFE_MCU(&UVP_Pair, &LEDB, &ClearBits, Cell_VMin);          //Priority 2
+    FaultHandler_AFE_MCU(&OVP_Pair, &LEDB, &ClearBits, Cell_VMax);          //Priority 1
+
+    //----------------------------------------------------------------------
+    //Now deal with the outcome of the faults:
 
     if(Flag_USRRST)
     {   Flag_USRRST=false;  }

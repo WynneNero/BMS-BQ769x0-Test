@@ -8,7 +8,7 @@
 ----------------------------------------------------------------------------------------------------*/
 
 //----------------------------------------------------------------------------------------------------
-// This file includes:
+// INCLUDES
 #include <msp430.h>
 #include <stdbool.h>
 #include <System.h>
@@ -17,7 +17,7 @@
 //----------------------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------------------
-// Constantsm
+// CONSTANTS
 const unsigned int Cycle_LIM        =160;
 const unsigned int Blink_ONLIM      =1;
 const unsigned int Blink_PeriodLIM  =12;
@@ -60,35 +60,6 @@ void Init_GPIO()
 }
 
 //----------------------------------------------------------------------------------------------------
-void Init_Sys()
-{
-    // Disable the GPIO power-on default high-impedance mode to activate
-    // previously configured port settings
-    PM5CTL0 &= ~LOCKLPM5;
-}
-
-//------------------------------//--------------------------------------------------------------------
-void Setup_LEDs(void)
-{
-    //Enable the LEDs with the low side enable FET
-    LEDEN_POUT &= ~LEDEN;
-    LEDEN_PDIR |= LEDEN;
-    LEDEN_POUT |= LEDEN;              // Turn the Enable FET on
-
-    // Configure Port 2 GPIO
-    LEDA_POUT &= ~LEDA_GRN;             // Clear P2.0 output latch for a defined power-on state
-    LEDA_PDIR |= LEDA_GRN;              // P2.0 Set to Output
-    LEDA_POUT &= ~LEDA_RED;             // Clear P2.1 output latch for a defined power-on state
-    LEDA_PDIR |= LEDA_RED;              // P2.1 Set to Output
-
-    // Configure Port 4 GPIO
-    LEDB_POUT &= ~LEDB_GRN;             // Clear P4.0 output latch for a defined power-on state
-    LEDB_PDIR |= LEDB_GRN;              // 4.0 Set to Output
-    LEDB_POUT &= ~LEDB_RED;             // Clear P4.1 output latch for a defined power-on state
-    LEDB_PDIR |= LEDB_RED;              // P4.1 Set to Output
-}
-
-//----------------------------------------------------------------------------------------------------
 void Setup_Buttons(void)
 {
     // Configure Port 2 GPIO, Button on P2.2:
@@ -108,7 +79,40 @@ void Setup_Buttons(void)
     //BTNPWR_IFG &= ~BTNPWR;           // Button Pin interrupt flag cleared
 }
 
+//----------------------------------------------------------------------------------------------------
+void Setup_LEDs(void)
+{
+    //Enable the LEDs with the low side enable FET
+    LEDEN_POUT &= ~LEDEN;
+    LEDEN_PDIR |= LEDEN;
+    LEDEN_POUT |= LEDEN;              // Turn the Enable FET on
 
+    // Configure Port 2 GPIO
+    LEDA_POUT &= ~LEDA_GRN;             // Clear P2.0 output latch for a defined power-on state
+    LEDA_PDIR |= LEDA_GRN;              // P2.0 Set to Output
+    LEDA_POUT &= ~LEDA_RED;             // Clear P2.1 output latch for a defined power-on state
+    LEDA_PDIR |= LEDA_RED;              // P2.1 Set to Output
+
+    //Register_Bit_Set(&P2OUT, 0, 1);    // Clear P2.0 output latch for a defined power-on state
+    //Register_Bit_Set(&P2DIR, 0, 0);    // Set P2.0 to Output for LEDA-Green
+    //Register_Bit_Set(&P2OUT, 1, 1);    // Clear P2.1 output latch for a defined power-on state
+    //Register_Bit_Set(&P2DIR, 1, 0);    // Set P2.1 to Output for LEDA-Red
+
+
+    // Configure Port 4 GPIO
+    LEDB_POUT &= ~LEDB_GRN;             // Clear P4.0 output latch for a defined power-on state
+    LEDB_PDIR |= LEDB_GRN;              // 4.0 Set to Output
+    LEDB_POUT &= ~LEDB_RED;             // Clear P4.1 output latch for a defined power-on state
+    LEDB_PDIR |= LEDB_RED;              // P4.1 Set to Output
+}
+
+//----------------------------------------------------------------------------------------------------
+void Init_Sys()
+{
+    // Disable the GPIO power-on default high-impedance mode to activate
+    // previously configured port settings
+    PM5CTL0 &= ~LOCKLPM5;
+}
 
 //----------------------------------------------------------------------------------------------------
 void Setup_GateDriver(void)
@@ -121,8 +125,6 @@ void Setup_GateDriver(void)
 
     GTDRV_POUT &= ~GTDRV_PCHG;             // Clear output latch for a defined power-on state
     GTDRV_PDIR |= GTDRV_PCHG;              // Set to Output
-
-
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -151,6 +153,54 @@ void Register_Bit_Set(volatile unsigned char *reg, unsigned int bit, unsigned in
 // Get a bit within a memory register
 uint8_t Register_Bit_Get(volatile unsigned char *reg, unsigned int bit)
 {   return *reg &= (1<<bit);     }
+
+//----------------------------------------------------------------------------------------------------
+BTNState_t Button_Handler(Button_t *button)
+{
+    const bool BTN_IN = Register_Bit_Get(button->PXIN,button->Pin);
+
+    switch(button->State)
+    {
+        case NPRESSED:
+            if((Register_Bit_Get(button->PXIN,button->Pin))==0)
+            {   button->BTN_CT++;
+                button->State=PRESSED;          }
+            return NPRESSED;
+
+        case PRESSED:
+            if(BTN_IN==0 && button->BTN_CT>=BTN_PRESSED_LIM)
+            {   button->BTN_CT++;
+                button->State=SHORT_PRESSED;    }
+            else if(BTN_IN==0)
+            {   button->BTN_CT++;               }
+            else if(BTN_IN!=0)
+            {   button->BTN_CT=0;
+                button->State=NPRESSED;         }
+            return NPRESSED;
+
+        case SHORT_PRESSED:
+            if(BTN_IN==0 && button->BTN_CT>=BTN_LONGPRESS_LIM)
+            {   button->BTN_CT++;
+                button->State=LONG_PRESSED;
+                return LONG_PRESSED;            }
+            else if(BTN_IN==0)
+            {   button->BTN_CT++;               }
+            else if(BTN_IN!=0)
+            {   button->BTN_CT=0;
+                button->State=NPRESSED;
+                return SHORT_PRESSED;           }
+            return NPRESSED;
+
+        case LONG_PRESSED:
+            if(BTN_IN==0)
+            {   return NPRESSED;                }
+            else if(BTN_IN!=0)
+            {   button->BTN_CT=0;
+                button->State=NPRESSED;
+                return NPRESSED;                }
+    }
+    return NPRESSED;
+}
 
 //----------------------------------------------------------------------------------------------------
 // Modify the LED mode - this actually needs to then do something?
@@ -222,52 +272,4 @@ void LED_BlinkHandler(BiColorLED_t *led, unsigned int cycleCT)
     case LEDMode_STATIC:
         break;
     }
-}
-
-//----------------------------------------------------------------------------------------------------
-BTNState_t Button_Handler(Button_t *button)
-{
-    switch(button->State)
-    {
-        case NPRESSED:
-            if((Register_Bit_Get(button->PXIN,button->Pin))==0)
-            {   button->BTN_CT++;
-                button->State=PRESSED;          }
-            return NPRESSED;
-
-        case PRESSED:
-            if((Register_Bit_Get(button->PXIN,button->Pin))==0 &&
-                button->BTN_CT>=BTN_PRESSED_LIM)
-            {   button->BTN_CT++;
-                button->State=SHORT_PRESSED;    }
-            else if((Register_Bit_Get(button->PXIN,button->Pin))==0)
-            {   button->BTN_CT++;               }
-            else if((Register_Bit_Get(button->PXIN,button->Pin))!=0)
-            {   button->BTN_CT=0;
-                button->State=NPRESSED;         }
-            return NPRESSED;
-
-        case SHORT_PRESSED:
-            if((Register_Bit_Get(button->PXIN,button->Pin))==0 &&
-                button->BTN_CT!=BTN_LONGPRESS_LIM)
-            {   button->BTN_CT++;
-                button->State=LONG_PRESSED;
-                return LONG_PRESSED;            }
-            else if((Register_Bit_Get(button->PXIN,button->Pin))==0)
-            {   button->BTN_CT++;               }
-            else if((Register_Bit_Get(button->PXIN,button->Pin))!=0)
-            {   button->BTN_CT=0;
-                button->State=NPRESSED;
-                return SHORT_PRESSED;           }
-            return NPRESSED;
-
-        case LONG_PRESSED:
-            if((Register_Bit_Get(button->PXIN,button->Pin))==0)
-            {   return NPRESSED;                }
-            else if((Register_Bit_Get(button->PXIN,button->Pin))!=0)
-            {   button->BTN_CT=0;
-                button->State=NPRESSED;
-                return NPRESSED;                }
-    }
-    return NPRESSED;
 }
