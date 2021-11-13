@@ -14,12 +14,14 @@
 #include <msp430.h>
 #include <stdbool.h>
 #include <stdint.h>
+//#include "QmathLib.h"
 #include "Constants.h"
 #include "I2C_Handler.h"
 #include "Fault_Handler.h"
 #include "BatteryData.h"
 #include "System.h"
 #include "UART_Interface.h"
+#include "Persistent.h"
 
 //----------------------------------------------------------------------------------------------------
 // CONSTANTS
@@ -67,7 +69,7 @@ unsigned int SYS_Checkin_CT = 0;
 unsigned int Cell_VMax = 0;
 unsigned int Cell_VMin = 0;
 signed int IMeasured = 0;
-signed int IOffset = 334;
+signed int IOffset = -170;
 
 //----------------------------------------------------------------------------------------------------
 // STRUCT INITS:
@@ -85,37 +87,72 @@ extern BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_O
 extern BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_OFF, 1, 0, 0, 0};
 
 //Faults:
-static Qual_AFE_t OVP_Latch = {2, 0x00};
-static Qual_MCU_t OVP_Clear = {NEGATIVE, 0x2329, 0x2328  , 0, 20};
-static FaultPair_AFE_MCU_t OVP_Pair =  {CLEARED, &OVP_Latch, &OVP_Clear, BIT2, 0, 7, BiColor_GREEN};
+#pragma PERSISTENT(OVP_Latch);
+#pragma PERSISTENT(OVP_Clear);
+#pragma PERSISTENT(OVP_Pair);
+//#pragma PERSISTENT(OVP_TripsCT);
+//unsigned int OVP_TripsCT=0;
+Qual_AFE_t OVP_Latch = {2, 0x00};
+Qual_MCU_t OVP_Clear = {NEGATIVE, 0x2329, 0x2328  , 0, 20};
+FaultPair_AFE_MCU_t OVP_Pair =  {CLEARED, &OVP_Latch, &OVP_Clear, 0, BIT2,
+                                        0, 7, BiColor_GREEN};
 
-static Qual_AFE_t UVP_Latch = {3, 0x00};
-static Qual_MCU_t UVP_Clear = {POSITIVE, 0x1771, 0x1770, 0, 20};
-static FaultPair_AFE_MCU_t UVP_Pair =  {CLEARED, &UVP_Latch, &UVP_Clear, BIT3, 0, 7, BiColor_RED};
+#pragma PERSISTENT(UVP_Latch);
+#pragma PERSISTENT(UVP_Clear);
+#pragma PERSISTENT(UVP_Pair);
+//#pragma PERSISTENT(UVP_TripsCT);
+//unsigned int UVP_TripsCT=0;
+Qual_AFE_t UVP_Latch = {3, 0x00};
+Qual_MCU_t UVP_Clear = {POSITIVE, 0x1771, 0x1770, 0, 20};
+FaultPair_AFE_MCU_t UVP_Pair =  {CLEARED, &UVP_Latch, &UVP_Clear, 0, BIT3,
+                                        0, 7, BiColor_RED};
 
-static Qual_AFE_t SCPD_Latch = {0, 0x00};
-static Qual_AUR_t SCPD_Clear = {false, 0, 40, 0, 3, false};;
-static FaultPair_AFE_AUR_t SCPD_Pair =  {CLEARED, &SCPD_Latch, &SCPD_Clear, BIT1, 0, 6, BiColor_RED};
+#pragma PERSISTENT(SCPD_Latch);
+#pragma PERSISTENT(SCPD_Clear);
+#pragma PERSISTENT(SCPD_Pair);
+Qual_AFE_t SCPD_Latch = {0, 0x00};
+Qual_AUR_t SCPD_Clear = {false, 0, 40, 0, 3, false};;
+FaultPair_AFE_AUR_t SCPD_Pair =  {CLEARED, &SCPD_Latch, &SCPD_Clear, 0, BIT1,
+                                         0, 6, BiColor_RED};
 
-static Qual_AFE_t OCPD_Latch = {0, 0x00};
-static Qual_AUR_t OCPD_Clear = {false, 0, 40, 0, 3, false};;
-static FaultPair_AFE_AUR_t OCPD_Pair =  {CLEARED, &OCPD_Latch, &OCPD_Clear, BIT0, 0, 5, BiColor_RED};
+#pragma PERSISTENT(OCPD_Latch);
+#pragma PERSISTENT(OCPD_Clear);
+#pragma PERSISTENT(OCPD_Pair);
+Qual_AFE_t OCPD_Latch = {0, 0x00};
+Qual_AUR_t OCPD_Clear = {false, 0, 40, 0, 3, false};;
+FaultPair_AFE_AUR_t OCPD_Pair =  {CLEARED, &OCPD_Latch, &OCPD_Clear, 0, BIT0,
+                                         0, 5, BiColor_RED};
 
-static Qual_MCU_t BCPD_Latch = {NEGATIVE, 0x0000, BCPD_Thresh, 0, 4};
-static Qual_AUR_t BCPD_Clear = {false, 0, 40, 0, 3, false};
-static FaultPair_MCU_AUR_t BCPD_Pair =  {CLEARED, &BCPD_Latch, &BCPD_Clear, 0, 4, BiColor_RED};
+#pragma PERSISTENT(BCPD_Latch);
+#pragma PERSISTENT(BCPD_Clear);
+#pragma PERSISTENT(BCPD_Pair);
+Qual_MCU_t BCPD_Latch = {NEGATIVE, 0x0000, BCPD_Thresh, 0, 4};
+Qual_AUR_t BCPD_Clear = {false, 0, 40, 0, 3, false};
+FaultPair_MCU_AUR_t BCPD_Pair =  {CLEARED, &BCPD_Latch, &BCPD_Clear, 0,
+                                         0, 4, BiColor_RED};
 
-static Qual_MCU_t MCPD_Latch = {NEGATIVE, 0x0000, MCPD_Thresh, 0, 40};
-static Qual_AUR_t MCPD_Clear = {false, 0, 40, 0, 3, false};
-static FaultPair_MCU_AUR_t MCPD_Pair =  {CLEARED, &MCPD_Latch, &MCPD_Clear, 0, 3, BiColor_RED};
+#pragma PERSISTENT(MCPD_Latch);
+#pragma PERSISTENT(MCPD_Clear);
+#pragma PERSISTENT(MCPD_Pair);
+Qual_MCU_t MCPD_Latch = {NEGATIVE, 0x0000, MCPD_Thresh, 0, 40};
+Qual_AUR_t MCPD_Clear = {false, 0, 40, 0, 3, false};
+FaultPair_MCU_AUR_t MCPD_Pair =  {CLEARED, &MCPD_Latch, &MCPD_Clear, 0,
+                                         0, 3, BiColor_RED};
 
-static Qual_MCU_t BCPC_Latch = {POSITIVE, 0x0000, BCPC_Thresh, 0, 4};
-static Qual_AUR_t BCPC_Clear = {false, 0, 40, 0, 3, false};
-static FaultPair_MCU_AUR_t BCPC_Pair =  {CLEARED, &BCPC_Latch, &BCPC_Clear, 0, 4, BiColor_GREEN};
+#pragma PERSISTENT(BCPC_Latch);
+#pragma PERSISTENT(BCPC_Clear);
+#pragma PERSISTENT(BCPC_Pair);
+Qual_MCU_t BCPC_Latch = {POSITIVE, 0x0000, BCPC_Thresh, 0, 4};
+Qual_AUR_t BCPC_Clear = {false, 0, 40, 0, 3, false};
+FaultPair_MCU_AUR_t BCPC_Pair =  {CLEARED, &BCPC_Latch, &BCPC_Clear, 0,
+                                         0, 4, BiColor_GREEN};
 
-static Qual_MCU_t MCPC_Latch = {POSITIVE, 0x0000, MCPC_Thresh, 0, 40};
-static Qual_AUR_t MCPC_Clear = {false, 0, 40, 0, 3, false};
-static FaultPair_MCU_AUR_t MCPC_Pair =  {CLEARED, &MCPC_Latch, &MCPC_Clear, 0, 3, BiColor_GREEN};
+#pragma PERSISTENT(MCPC_Latch);
+#pragma PERSISTENT(MCPC_Clear);
+#pragma PERSISTENT(MCPC_Pair);
+Qual_MCU_t MCPC_Latch = {POSITIVE, 0x0000, MCPC_Thresh, 0, 40};
+Qual_AUR_t MCPC_Clear = {false, 0, 40, 0, 3, false};
+FaultPair_MCU_AUR_t MCPC_Pair =  {CLEARED, &MCPC_Latch, &MCPC_Clear, 0, 3, BiColor_GREEN};
 
 
 //----------------------------------------------------------------------------------------------------
@@ -200,7 +237,6 @@ int main(void)
             if(ButtonRet_PWR==SHORT_PRESSED)
             {   __delay_cycles(1);     }
             if(ButtonRet_PWR==LONG_PRESSED)
-
             {   Flag_USRRST=true;       }
             // This acts as a backup if for some reason the system misses the ALERT interrupt,
             // also convenient when it is masked during debugging:
@@ -400,6 +436,8 @@ __interrupt void Port_1(void)
     Flag_AFEALRT=true;
     DBUGOUT_POUT &= ~DBUGOUT_2;
     __bic_SR_register_on_exit(LPM0_bits);       // Exit LPM3
+
+
 }
 
 //----------------------------------------------------------------------------------------------------

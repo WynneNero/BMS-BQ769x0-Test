@@ -39,8 +39,9 @@ bool FaultHandler_AFE_MCU (FaultPair_AFE_MCU_t *pair,
     case CLEARED:
         if(QualHandler_AFE(pair->Latch)==true)
         {
-              Set_LED_Blinks (led, pair->Fault_Color, pair->Fault_NumBlinks);
+            Set_LED_Blinks (led, pair->Fault_Color, pair->Fault_NumBlinks);
             pair->State=TRIPPED;
+            pair->Trips=(pair->Trips+1);
             return false;
         }
         break;
@@ -72,6 +73,7 @@ bool FaultHandler_AFE_AUR (FaultPair_AFE_AUR_t *pair,
         {
             Set_LED_Blinks (led, pair->Fault_Color, pair->Fault_NumBlinks);
             pair->State=TRIPPED;
+            pair->Trips=(pair->Trips+1);
             return false;
         }
         break;
@@ -103,6 +105,7 @@ bool FaultHandler_MCU_AUR (FaultPair_MCU_AUR_t *pair,
         {
             Set_LED_Blinks (led, pair->Fault_Color, pair->Fault_NumBlinks);
             pair->State=TRIPPED;
+            pair->Trips=(pair->Trips+1);
             return false;
         }
         break;
@@ -124,8 +127,7 @@ bool FaultHandler_MCU_AUR (FaultPair_MCU_AUR_t *pair,
 // AUR Qualifier Handler
 bool QualHandler_AUR (Qual_AUR_t *qual)
 {
-
-
+    return false;
 }
 
 //----------------------------------------------------------------------------------------------------

@@ -76,11 +76,12 @@ typedef struct
     FaultState_t State;
     Qual_AFE_t *Latch;
     Qual_MCU_t *Clear;
+    unsigned int Trips;
     const uint8_t ClearBit;
 
     unsigned int Fault_CT;
     unsigned int Fault_NumBlinks;
-      BiColor_t Fault_Color;
+    BiColor_t Fault_Color;
 
 } FaultPair_AFE_MCU_t;
 
@@ -96,6 +97,7 @@ typedef struct
     FaultState_t State;
     Qual_AFE_t *Latch;
     Qual_AUR_t *Clear;
+    unsigned int Trips;
     uint8_t ClearBit;
 
     unsigned int Fault_CT;
@@ -116,6 +118,7 @@ typedef struct
     FaultState_t State;
     Qual_MCU_t *Latch;
     Qual_MCU_t *Clear;
+    unsigned int Trips;
 
     unsigned int Fault_CT;
     unsigned int Fault_NumBlinks;
@@ -134,6 +137,7 @@ typedef struct
     FaultState_t State;
     Qual_MCU_t *Latch;
     Qual_AUR_t *Clear;
+    unsigned int Trips;
 
     unsigned int Fault_CT;
     unsigned int Fault_NumBlinks;

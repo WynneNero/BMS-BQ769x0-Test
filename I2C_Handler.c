@@ -26,6 +26,7 @@ uint8_t TXBuf_INDEX = 0;
 uint8_t RXByte_CT = 0;
 uint8_t RXBuf_INDEX = 0;
 uint8_t NextTXReg = 0;
+uint8_t NextTXReg2 = 0;
 uint8_t RXedVal = 0;
 
 bool I2CBusy = true;
@@ -36,11 +37,10 @@ typedef enum I2CMode_enum{
     IDLE_MODE,
     NACK_MODE,
     TX_REG_ADDRESS_MODE,
-    RX_REG_ADDRESS_MODE,
+    TX_REG_ADDRESS_MODE2,
     TX_DATA_MODE,
     RX_DATA_MODE,
     SWITCH_TO_RX_MODE,
-    SWITCH_TO_TX_MODE,
     TIMEOUT_MODE
 } I2CMode_t;
 
@@ -142,6 +142,42 @@ bool I2C_Read(uint8_t Addr, uint8_t CtrlReg, uint8_t NumBytes)
 
 }
 
+bool I2C_Read_Ctrl2(uint8_t Addr, uint8_t CtrlReg, uint8_t CtrlReg2, uint8_t NumBytes)
+{
+    //Setup RX mode and capture control/register byte
+    I2CMode=TX_REG_ADDRESS_MODE;
+    NextTXReg = CtrlReg;
+    NextTXReg2 = CtrlReg2;
+
+    //Setup all the counts for TX Mode
+    TXByte_CT = 1;
+    TXBuf_INDEX = 0;
+    RXByte_CT = NumBytes;
+    RXBuf_INDEX = 0;
+
+    //Setup the I2C Peripheral for transmitting (TX happens first, then RX)
+    UCB0I2CSA = Addr;
+    UCB0CTLW0 |= UCTR;                                  // I2C Transmit Mode
+    UCB0IFG &= ~(UCTXIFG + UCRXIFG);                    // Clear any pending interrupts
+    UCB0IE &= ~UCRXIE;                                  // Disable RX interrupt
+    UCB0IE |= UCTXIE;                                   // Enable TX interrupt
+
+    //Set I2C Busy flag and begin transmission
+    I2CBusy = true;
+    UCB0CTL1 |= UCTXSTT;                                // I2C start condition
+
+    //Not sure if this should be here or not, need to fix for first call during Init
+    __bis_SR_register(GIE);                             // General interrupt enable
+
+    while(I2CBusy)
+    {   __no_operation();   }
+
+    __no_operation();
+
+    //For now just return true, in the future return false if there were issues with the transmission
+    return true;
+}
+
 //----------------------------------------------------------------------------------------------------
 // I2C Interrupt Vector and associated flags
 #pragma vector = USCI_B0_VECTOR
@@ -197,7 +233,18 @@ __interrupt void USCIB0_ISR(void)
         {
             case TX_REG_ADDRESS_MODE:
                 UCB0TXBUF = NextTXReg;
-                if(RXByte_CT)
+                if(RXByte_CT && TXByte_CT==0)
+                {   I2CMode=SWITCH_TO_RX_MODE;  }
+                else if(RXByte_CT && TXByte_CT==1)
+                {   I2CMode=TX_REG_ADDRESS_MODE2;
+                    TXByte_CT=0;                }
+                else
+                {   I2CMode = TX_DATA_MODE;     }
+                break;
+
+            case TX_REG_ADDRESS_MODE2:
+                UCB0TXBUF = NextTXReg2;
+                if(RXByte_CT && TXByte_CT==0)
                 {   I2CMode=SWITCH_TO_RX_MODE;  }
                 else
                 {   I2CMode = TX_DATA_MODE;     }

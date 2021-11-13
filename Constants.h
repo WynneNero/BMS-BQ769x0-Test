@@ -20,6 +20,7 @@
 //----------------------------------------------------------------------------------------------------
 // Constants
 #define I2C_BQ769xxADDR         0x18
+#define I2C_NTP5312ADDR         0x54
 //----------------------------------
 #define SETUP_SYS_CTRL1         0x18    //ADC Enabled
 #define SETUP_SYS_CTRL2         0x43
