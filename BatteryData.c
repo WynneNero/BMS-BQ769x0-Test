@@ -81,7 +81,10 @@ void Init_BMSConfig(void)
 
     //I2CTXBuf[0]=0x00
     //I2C_Write(I2C_NTP5312ADDR, 0x00, 1);
-    I2C_Read_Ctrl2(I2C_NTP5312ADDR, 0x00, 0x14, 30);            //Confirm Proper Sys Config
+    I2C_Read_Ctrl2(I2C_NTP5312ADDR, 0x00, 0x00, 32);            //Confirm Proper Sys Config
+    I2C_Read_Ctrl2(I2C_NTP5312ADDR, 0x00, 0x08, 32);            //Confirm Proper Sys Config
+    I2C_Read_Ctrl2(I2C_NTP5312ADDR, 0x00, 0x10, 32);            //Confirm Proper Sys Config
+    I2C_Read_Ctrl2(I2C_NTP5312ADDR, 0x00, 0x18, 32);            //Confirm Proper Sys Config
 }
 
 

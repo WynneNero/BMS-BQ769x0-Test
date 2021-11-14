@@ -14,7 +14,7 @@
 #include <msp430.h>
 #include <stdbool.h>
 #include <stdint.h>
-//#include "QmathLib.h"
+#include "QmathLib.h"
 #include "Constants.h"
 #include "I2C_Handler.h"
 #include "Fault_Handler.h"
@@ -71,6 +71,12 @@ unsigned int Cell_VMin = 0;
 signed int IMeasured = 0;
 signed int IOffset = -170;
 
+_q8 X, Y;
+_q8 A;
+A = _Q8(0.1);
+X = _Q8(4.25);
+Y = _Q8(2.5);
+
 //----------------------------------------------------------------------------------------------------
 // STRUCT INITS:
 
@@ -87,15 +93,7 @@ extern BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_O
 extern BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_OFF, 1, 0, 0, 0};
 
 //Faults:
-#pragma PERSISTENT(OVP_Latch);
-#pragma PERSISTENT(OVP_Clear);
-#pragma PERSISTENT(OVP_Pair);
-//#pragma PERSISTENT(OVP_TripsCT);
-//unsigned int OVP_TripsCT=0;
-Qual_AFE_t OVP_Latch = {2, 0x00};
-Qual_MCU_t OVP_Clear = {NEGATIVE, 0x2329, 0x2328  , 0, 20};
-FaultPair_AFE_MCU_t OVP_Pair =  {CLEARED, &OVP_Latch, &OVP_Clear, 0, BIT2,
-                                        0, 7, BiColor_GREEN};
+
 
 #pragma PERSISTENT(UVP_Latch);
 #pragma PERSISTENT(UVP_Clear);
@@ -184,9 +182,11 @@ int main(void)
 
     //Init_UART();
 
+    A = _Q8mpy(X, Y);
+
     while (1)
     {
-        __bis_SR_register(LPM0_bits|GIE);   // Enter LPM0 w/ interrupt
+          __bis_SR_register(LPM0_bits|GIE);   // Enter LPM0 w/ interrupt
         __delay_cycles(10);
         //__bic_SR_register(GIE); // Disable global interrupts
 
