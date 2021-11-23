@@ -94,11 +94,10 @@ void Setup_LEDs(void)
     LEDA_POUT &= ~LEDA_RED;             // Clear P2.1 output latch for a defined power-on state
     LEDA_PDIR |= LEDA_RED;              // P2.1 Set to Output
 
-    //Register_Bit_Set(&P2OUT, 0, 1);    // Clear P2.0 output latch for a defined power-on state
-    //Register_Bit_Set(&P2DIR, 0, 0);    // Set P2.0 to Output for LEDA-Green
-    //Register_Bit_Set(&P2OUT, 1, 1);    // Clear P2.1 output latch for a defined power-on state
-    //Register_Bit_Set(&P2DIR, 1, 0);    // Set P2.1 to Output for LEDA-Red
-
+    //Register_Bit_Set(&P2OUT, 0, 1);   // Clear P2.0 output latch for a defined power-on state
+    //Register_Bit_Set(&P2DIR, 0, 0);   // Set P2.0 to Output for LEDA-Green
+    //Register_Bit_Set(&P2OUT, 1, 1);   // Clear P2.1 output latch for a defined power-on state
+    //Register_Bit_Set(&P2DIR, 1, 0);   // Set P2.1 to Output for LEDA-Red
 
     // Configure Port 4 GPIO
     LEDB_POUT &= ~LEDB_GRN;             // Clear P4.0 output latch for a defined power-on state

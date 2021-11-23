@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "QmathLib.h"
+#include "IQmathLib.h"
 #include "Constants.h"
 #include "I2C_Handler.h"
 #include "Fault_Handler.h"
@@ -22,6 +23,7 @@
 #include "System.h"
 #include "UART_Interface.h"
 #include "Persistent.h"
+#include "ParameterData.h"
 
 //----------------------------------------------------------------------------------------------------
 // CONSTANTS
@@ -71,11 +73,9 @@ unsigned int Cell_VMin = 0;
 signed int IMeasured = 0;
 signed int IOffset = -170;
 
-_q8 X, Y;
-_q8 A;
-A = _Q8(0.1);
-X = _Q8(4.25);
-Y = _Q8(2.5);
+_iq16 A = _IQ16(0.1);
+_iq16 X = _IQ16(4.25);
+_iq16 Y = _IQ16(2.5);
 
 //----------------------------------------------------------------------------------------------------
 // STRUCT INITS:
@@ -91,66 +91,6 @@ extern Button_t BTN_FLT = {&P2IN, 3, 0, NPRESSED};
 
 extern BiColorLED_t LEDA = {&P2OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_OFF, 1, 0, 0, 0};
 extern BiColorLED_t LEDB = {&P4OUT, 1, 0, LEDMode_STATIC, BiColor_OFF, BiColor_OFF, 1, 0, 0, 0};
-
-//Faults:
-
-
-#pragma PERSISTENT(UVP_Latch);
-#pragma PERSISTENT(UVP_Clear);
-#pragma PERSISTENT(UVP_Pair);
-//#pragma PERSISTENT(UVP_TripsCT);
-//unsigned int UVP_TripsCT=0;
-Qual_AFE_t UVP_Latch = {3, 0x00};
-Qual_MCU_t UVP_Clear = {POSITIVE, 0x1771, 0x1770, 0, 20};
-FaultPair_AFE_MCU_t UVP_Pair =  {CLEARED, &UVP_Latch, &UVP_Clear, 0, BIT3,
-                                        0, 7, BiColor_RED};
-
-#pragma PERSISTENT(SCPD_Latch);
-#pragma PERSISTENT(SCPD_Clear);
-#pragma PERSISTENT(SCPD_Pair);
-Qual_AFE_t SCPD_Latch = {0, 0x00};
-Qual_AUR_t SCPD_Clear = {false, 0, 40, 0, 3, false};;
-FaultPair_AFE_AUR_t SCPD_Pair =  {CLEARED, &SCPD_Latch, &SCPD_Clear, 0, BIT1,
-                                         0, 6, BiColor_RED};
-
-#pragma PERSISTENT(OCPD_Latch);
-#pragma PERSISTENT(OCPD_Clear);
-#pragma PERSISTENT(OCPD_Pair);
-Qual_AFE_t OCPD_Latch = {0, 0x00};
-Qual_AUR_t OCPD_Clear = {false, 0, 40, 0, 3, false};;
-FaultPair_AFE_AUR_t OCPD_Pair =  {CLEARED, &OCPD_Latch, &OCPD_Clear, 0, BIT0,
-                                         0, 5, BiColor_RED};
-
-#pragma PERSISTENT(BCPD_Latch);
-#pragma PERSISTENT(BCPD_Clear);
-#pragma PERSISTENT(BCPD_Pair);
-Qual_MCU_t BCPD_Latch = {NEGATIVE, 0x0000, BCPD_Thresh, 0, 4};
-Qual_AUR_t BCPD_Clear = {false, 0, 40, 0, 3, false};
-FaultPair_MCU_AUR_t BCPD_Pair =  {CLEARED, &BCPD_Latch, &BCPD_Clear, 0,
-                                         0, 4, BiColor_RED};
-
-#pragma PERSISTENT(MCPD_Latch);
-#pragma PERSISTENT(MCPD_Clear);
-#pragma PERSISTENT(MCPD_Pair);
-Qual_MCU_t MCPD_Latch = {NEGATIVE, 0x0000, MCPD_Thresh, 0, 40};
-Qual_AUR_t MCPD_Clear = {false, 0, 40, 0, 3, false};
-FaultPair_MCU_AUR_t MCPD_Pair =  {CLEARED, &MCPD_Latch, &MCPD_Clear, 0,
-                                         0, 3, BiColor_RED};
-
-#pragma PERSISTENT(BCPC_Latch);
-#pragma PERSISTENT(BCPC_Clear);
-#pragma PERSISTENT(BCPC_Pair);
-Qual_MCU_t BCPC_Latch = {POSITIVE, 0x0000, BCPC_Thresh, 0, 4};
-Qual_AUR_t BCPC_Clear = {false, 0, 40, 0, 3, false};
-FaultPair_MCU_AUR_t BCPC_Pair =  {CLEARED, &BCPC_Latch, &BCPC_Clear, 0,
-                                         0, 4, BiColor_GREEN};
-
-#pragma PERSISTENT(MCPC_Latch);
-#pragma PERSISTENT(MCPC_Clear);
-#pragma PERSISTENT(MCPC_Pair);
-Qual_MCU_t MCPC_Latch = {POSITIVE, 0x0000, MCPC_Thresh, 0, 40};
-Qual_AUR_t MCPC_Clear = {false, 0, 40, 0, 3, false};
-FaultPair_MCU_AUR_t MCPC_Pair =  {CLEARED, &MCPC_Latch, &MCPC_Clear, 0, 3, BiColor_GREEN};
 
 
 //----------------------------------------------------------------------------------------------------
@@ -174,6 +114,7 @@ int main(void)
     Init_I2C();
 
     // AFE and System State Initialization:
+    ReadCFG_FRAM(TARGET_FRAM_DFLT0);
     Init_App();
     __delay_cycles(100000);
 
@@ -182,7 +123,7 @@ int main(void)
 
     //Init_UART();
 
-    A = _Q8mpy(X, Y);
+    A = _IQ16mpy(X, Y);
 
     while (1)
     {
