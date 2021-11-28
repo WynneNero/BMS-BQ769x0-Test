@@ -73,9 +73,9 @@ unsigned int Cell_VMin = 0;
 signed int IMeasured = 0;
 signed int IOffset = -170;
 
-_iq16 A = _IQ16(0.1);
-_iq16 X = _IQ16(4.25);
-_iq16 Y = _IQ16(2.5);
+_iq16 A = _IQ16(2.9);
+_iq16 LL = _IQ16(2.2);
+_iq16 UL = _IQ16(2.8);
 
 //----------------------------------------------------------------------------------------------------
 // STRUCT INITS:
@@ -113,8 +113,11 @@ int main(void)
     Init_Sys();
     Init_I2C();
 
+    if(A>LL&&A<UL)
+    {   __delay_cycles(10); }
+
     // AFE and System State Initialization:
-    ReadCFG_FRAM(TARGET_FRAM_DFLT0);
+    ReadCFG(TARGET_FRAM_DFLT0);
     Init_App();
     __delay_cycles(100000);
 
@@ -123,7 +126,9 @@ int main(void)
 
     //Init_UART();
 
-    A = _IQ16mpy(X, Y);
+
+
+    //A = _IQ16mpy(X, Y);
 
     while (1)
     {
