@@ -38,6 +38,8 @@ unsigned int SYS_State = SYS_INIT;
 uint8_t ButtonRet_PWR = NPRESSED;
 uint8_t ButtonRet_FLT = NPRESSED;
 
+paramResult_t CFGResult = FAILED_NULL;
+
 //----------------------------------------------------------------------------------------------------
 //Flow control flag variables
 
@@ -72,10 +74,6 @@ unsigned int Cell_VMax = 0;
 unsigned int Cell_VMin = 0;
 signed int IMeasured = 0;
 signed int IOffset = -170;
-
-_iq16 A = _IQ16(2.9);
-_iq16 LL = _IQ16(2.2);
-_iq16 UL = _IQ16(2.8);
 
 //----------------------------------------------------------------------------------------------------
 // STRUCT INITS:
@@ -113,11 +111,9 @@ int main(void)
     Init_Sys();
     Init_I2C();
 
-    if(A>LL&&A<UL)
-    {   __delay_cycles(10); }
-
     // AFE and System State Initialization:
-    ReadCFG(TARGET_FRAM_DFLT0);
+    CFGResult = ReadCFG(TARGET_FRAM_DFLT0);
+    CFGResult = ReadCFG(TARGET_FRAM_DFLT1);
     Init_App();
     __delay_cycles(100000);
 

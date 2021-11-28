@@ -37,14 +37,22 @@ typedef enum
     //VPCG (Voltage Protection Command Group):
 
     //OVPF (Over Voltage Protection Feature):
-    CODE_OVDC, CODE_OVDL,     //Over Voltage Threshold Clear, Latch
-    CODE_OVRD,           //Over Voltage Reduction of Discharge
-    CODE_OVTC, CODE_OVTL,     //Over Voltage Delay Clear, Latch
+    CODE_OVDC,  //Over Voltage Delay to Clear
+    CODE_OVDL,  //Over Voltage Delay to Latch
+    CODE_OVRD,  //Over Voltage Reduction of Discharge
+    CODE_OVTC,  //Over Voltage Threshold for Clear
+    CODE_OVTL,  //Over Voltage Threshold for Latch
 
     //UVPF (Under Voltage Protection Feature):
-    CODE_UVDC, CODE_UVDL,     //Under Voltage Threshold Clear, Latch
-    CODE_UVRC,           //Under Voltage Reset Behavior
-    CODE_UVTC, CODE_UVTL,     //Under Voltage Delay Clear, Latch
+    CODE_UVDC,  //Under Voltage Threshold Clear
+    CODE_UVDL,  //Under Voltage Threshold Latch
+    CODE_UVRC,  //Under Voltage Reset Behavior
+    CODE_UVTC,  //Under Voltage Threshold for Clear
+    CODE_UVTL,  //Under Voltage Threshold for Latch
+
+
+
+
 }paramCode_t;
 
 //----------------------------------------------------------------------------------------------------
@@ -92,6 +100,7 @@ typedef enum
     FAILED_OPTIONLIM,
     FAILED_DELIM,
     FAILED_PARAMTYPEMM,   //MM="MisMatch"
+    PASSED_EOT,
     PASSED_NOCHECK,
     PASSED_CHECKED
 }paramResult_t;
@@ -104,33 +113,27 @@ typedef struct
 {
     char Name[4];
     paramCode_t Code;
-    paramType_t Type;
 }paramList_s;
 
 //----------------------------------------------------------------------------------------------------
 typedef struct
 {
-    char Name[4];
     _iq16 Proposed;
-    _iq16 Adopted;
-    const _iq16 L_Lim;
-    const _iq16 U_Lim;
+
 }Param_IQ16_LUL_s;
 
 //----------------------------------------------------------------------------------------------------
 typedef struct
 {
-    char Name[4];
     _q8 Proposed;
     _q8 Adopted;
-    _q8 L_Lim;
-    _q8 U_Lim;
+    const _q8 L_Lim;
+    const _q8 U_Lim;
 }Param_Q8_LUL_s;
 
 //----------------------------------------------------------------------------------------------------
 typedef struct
 {
-    char Name[4];
     unsigned int Proposed;
     unsigned int Adopted;
     const unsigned int L_Lim;
@@ -140,43 +143,57 @@ typedef struct
 //----------------------------------------------------------------------------------------------------
 typedef struct
 {
-    char Name[4];
     unsigned int Proposed;
     unsigned int Adopted;
     const unsigned int Options[4];
 }Param_UINT_4OPTS_s;
 
 //----------------------------------------------------------------------------------------------------
+typedef struct
+{
+    unsigned int Proposed;
+    unsigned int Adopted;
+    const unsigned int Options[8];
+}Param_UINT_8OPTS_s;
+
+//----------------------------------------------------------------------------------------------------
+typedef struct
+{
+    unsigned int Proposed;
+    unsigned int Adopted;
+    const unsigned int Options[16];
+}Param_UINT_16OPTS_s;
+
+
+
+//----------------------------------------------------------------------------------------------------
 //FUNCTION PROTOTYPES
 
-bool ReadCFG(paramTarget_t target);
+paramResult_t ReadCFG(paramTarget_t target);
 
-paramResult_t ProcessNextFRAMChar(char data);
-paramResult_t ProcessNextNFCChar(char data);
+paramResult_t ProcessNextChar(char data);
 paramResult_t LookupParamKey();
-paramResult_t CheckValue();
 
-//add the code in here as well later:
-paramResult_t CheckParameter(paramType_t type);
-paramResult_t AdoptParameter(paramType_t type);
+paramResult_t CheckParameter(paramCode_t code);
+paramResult_t AdoptParameter(paramCode_t code);
 
-paramResult_t CheckParam_IQ16_LUL(unsigned int code);
-paramResult_t AdoptParam_IQ16_LUL(unsigned int code);
+paramResult_t CheckParam_IQ16_LUL(unsigned int index);
+paramResult_t AdoptParam_IQ16_LUL(unsigned int index);
 
-paramResult_t CheckParam_Q8_LUL(unsigned int code);
-paramResult_t AdoptParam_Q8_LUL(unsigned int code);
+paramResult_t CheckParam_Q8_LUL(unsigned int index);
+paramResult_t AdoptParam_Q8_LUL(unsigned int index);
 
-paramResult_t CheckParam_UINT_LUL(unsigned int code);
-paramResult_t AdoptParam_UINT_LUL(unsigned int code);
+paramResult_t CheckParam_UINT_LUL(unsigned int index);
+paramResult_t AdoptParam_UINT_LUL(unsigned int index);
 
-paramResult_t CheckParam_UINT_4OPTS(unsigned int code);
-paramResult_t AdoptParam_UINT_4OPTS(unsigned int code);
+paramResult_t CheckParam_UINT_4OPTS(unsigned int index);
+paramResult_t AdoptParam_UINT_4OPTS(unsigned int index);
 
-paramResult_t CheckParam_BOOL(unsigned int code);
-paramResult_t AdoptParam_BOOL(unsigned int code);
+paramResult_t CheckParam_BOOL(unsigned int index);
+paramResult_t AdoptParam_BOOL(unsigned int index);
 
-paramResult_t CheckParam_RRMODE(unsigned int code);
-paramResult_t AdoptParam_RRMODE(unsigned int code);
+paramResult_t CheckParam_RRMODE(unsigned int index);
+paramResult_t AdoptParam_RRMODE(unsigned int index);
 
 int AtoI(char* str);
 #endif /* PARAMETERDATA_H */
