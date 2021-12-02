@@ -112,8 +112,8 @@ int main(void)
     Init_I2C();
 
     // AFE and System State Initialization:
-    CFGResult = ReadCFG(TARGET_FRAM_DFLT0);
-    CFGResult = ReadCFG(TARGET_FRAM_DFLT1);
+
+
     Init_App();
     __delay_cycles(100000);
 
@@ -214,6 +214,7 @@ void Init_App(void)
 
     //Setup for BQ769x0:
     __delay_cycles(100000);
+    CFGResult = ReadCFG(TARGET_FRAM_DFLT0);
     Init_BMSConfig();
     Set_ChargePump_On();
     __delay_cycles(100000);

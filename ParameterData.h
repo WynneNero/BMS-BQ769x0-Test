@@ -33,8 +33,15 @@ typedef enum
 {
     //Command codes are listed in ALPHABETIC ORDER here:
 
-    //--------------------------------------------------
-    //VPCG (Voltage Protection Command Group):
+    CODE_BCDC,
+    CODE_BCDD,
+    CODE_BCTC,
+    CODE_BCTD,
+
+    CODE_MCDC,
+    CODE_MCDD,
+    CODE_MCTC,
+    CODE_MCTD,
 
     //OVPF (Over Voltage Protection Feature):
     CODE_OVDC,  //Over Voltage Delay to Clear
@@ -49,11 +56,17 @@ typedef enum
     CODE_UVRC,  //Under Voltage Reset Behavior
     CODE_UVTC,  //Under Voltage Threshold for Clear
     CODE_UVTL,  //Under Voltage Threshold for Latch
-
-
-
-
 }paramCode_t;
+
+typedef enum
+{
+    CTry_MR,
+    CTry_3X,
+    CTry_4X,
+    CTry_5X,
+    CTry_7X,
+    CTry_10X
+}CurrTry_t;
 
 //----------------------------------------------------------------------------------------------------
 typedef enum
@@ -93,16 +106,12 @@ typedef enum
 {
     FAILED_NULL,
     FAILED_PARAMNAME,
-    FAILED_EQUALSCHAR,
-    FAILED_VALUEENTRY,
-    FAILED_VALIDATION,
-    FAILED_VALUELIM,
-    FAILED_OPTIONLIM,
-    FAILED_DELIM,
-    FAILED_PARAMTYPEMM,   //MM="MisMatch"
-    PASSED_EOT,
-    PASSED_NOCHECK,
-    PASSED_CHECKED
+    FAILED_PARAMEQUALS,
+    FAILED_PARAMVALUE,
+    FAILED_PARAMVALID,
+    FAILED_PARAMDELIM,
+    PASSED_PARAM,
+    PASSED_ETX
 }paramResult_t;
 
 //----------------------------------------------------------------------------------------------------
@@ -119,7 +128,9 @@ typedef struct
 typedef struct
 {
     _iq16 Proposed;
-
+    _iq16 Adopted;
+     const _iq16 L_Lim;
+     const _iq16 U_Lim;
 }Param_IQ16_LUL_s;
 
 //----------------------------------------------------------------------------------------------------
@@ -147,6 +158,22 @@ typedef struct
     unsigned int Adopted;
     const unsigned int Options[4];
 }Param_UINT_4OPTS_s;
+
+/*----------------------------------------------------------------------------------------------------
+typedef struct
+{
+    CurrTry_t Proposed;
+    CurrTry_t Adopted;
+    const unsigned int Options[6]; //MR, 3X, 4X, 5X, 7X, 10X
+}Param_UINT_IOPTS_s;*/
+
+/*----------------------------------------------------------------------------------------------------
+typedef struct
+{
+    unsigned int Proposed;
+    unsigned int Adopted;
+    const unsigned int Options[6]; //MR, 3X, 4X, 5X, 7X, 10X
+}Param_UINT_TOPTS_s;*/
 
 //----------------------------------------------------------------------------------------------------
 typedef struct

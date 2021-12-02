@@ -27,14 +27,14 @@ static char FRAM_DFLT0[PARAMFILELEN] =      "OVTL=3.90; OVDL=8; "
 
                                             "UVTL=2.80; UVDL=8; "
                                             "UVTC=2.90; UVDC=8; "
-                                            "UVRC=50; ^C";
+                                            "UVRC=50; "
 
                                             //"SCTD=22.25; SCDD=100; SCRD=3X; "
                                             //"OCTD=15.25; OCDD=160; OCRD=3X; "
-                                            //"BCTD=12.0; BCDD=5; BCRD=4X; "
-                                            //"MCTD=10.0; MCDD=60; MCRD=5X; "
-                                            //"BCTC=10.0; BCDC=5; BCRC=4X; "
-                                            //"MCTC=5.0; MCDC=60; MCRC=5X; "
+                                            "BCTD=12.0; BCDD=5; "       //BCRD=4X;
+                                            "MCTD=10.0; MCDD=60; "      //MCRD=5X;
+                                            "BCTC=10.0; BCDC=5; "       //BCRC=4X;
+                                            "MCTC=5.0; MCDC=60; \x03;"; //MCRC=5X;
 
                                             //"OTTC=100; OTTD=100; OTTS=120; OTTP=120; OTDP=10; OTRP=10X; "
                                             //"OTTB=50; OTDB=10; OTRB=IX; "
@@ -51,14 +51,14 @@ static char FRAM_DFLT1[PARAMFILELEN] =      "OVTL=5.20; OVDL=8; "
 
                                             "UVTL=2.80; UVDL=8; "
                                             "UVTC=2.90; UVDC=8; "
-                                            "UVRC=50; ";
+                                            "UVRC=50; "
 
                                             //"SCTD=22.25; SCDD=100; SCRD=3X; "
                                             //"OCTD=15.25; OCDD=160; OCRD=3X; "
-                                            //"BCTD=12.0; BCDD=5; BCRD=4X; "
-                                            //"MCTD=10.0; MCDD=60; MCRD=5X; "
-                                            //"BCTC=10.0; BCDC=5; BCRC=4X; "
-                                            //"MCTC=5.0; MCDC=60; MCRC=5X; "
+                                            "BCTD=12.0; BCDD=5; "       //BCRD=4X;
+                                            "MCTD=10.0; MCDD=60; "      //MCRD=5X;
+                                            "BCTC=10.0; BCDC=5; "       //BCRC=4X;
+                                            "MCTC=5.0; MCDC=60; \x03;"; //MCRC=5X;
 
                                             //"OTTC=100; OTTD=100; OTTS=120; OTTP=120; OTDP=10; OTRP=10X; "
                                             //"OTTB=50; OTDB=10; OTRB=IX; "
@@ -74,41 +74,56 @@ static char valueBuf[6];
 
 static parseState_t parseState;
 static const int codeLen = 4;
-static const int listLen = 10;
+static const int listLen = 18;
 
 //Assignment of Command Codes to the stored Parameter List,
 //Command codes are assigned in ALPHABETIC ORDER:
 #pragma PERSISTENT(ParamLookup);
 static paramList_s ParamLookup[]=
 {
-     {"OVDC", CODE_OVDC},   //Over Voltage Delay of Clear          //Key 0
-     {"OVDL", CODE_OVDL},   //Over Voltage Delay of Latch          //Key 1
-     {"OVRD", CODE_OVRD},   //Over Voltage Reduction of Discharge  //Key 2
-     {"OVTC", CODE_OVTC},   //Over Voltage Threshold for Clear     //Key 3
-     {"OVTL", CODE_OVTL},   //Over Voltage Threshold for Latch     //Key 4
+     {"BCDC", CODE_BCDC},   //Burst Current Delay in Charge             //Key 0
+     {"BCDD", CODE_BCDD},   //Burst Current Delay in Discharge          //Key 1
+     {"BCTC", CODE_BCTC},   //Burst Current Threshold in Charge         //Key 2
+     {"BCTD", CODE_BCTD},   //Burst Current Threshold in Discharge      //Key 3
 
-     {"UVDC", CODE_UVDC},   //Under Voltage Delay of Clear         //Key 5
-     {"UVDL", CODE_UVDL},   //Under Voltage Delay of Latch         //Key 6
-     {"UVRD", CODE_UVRC},   //Under Voltage Reduction of Charge    //Key 7
-     {"UVTC", CODE_UVTC},   //Under Voltage Threshold for Clear    //Key 8
-     {"UVTL", CODE_UVTL},   //Under Voltage Threshold for Latch    //Key 9
+     {"MCDC", CODE_MCDC},   //Maximum Current Delay in Charge           //Key 4
+     {"MCDD", CODE_MCDD},   //Maximum Current Delay in Discharge        //Key 5
+     {"MCTC", CODE_MCTC},   //Maximum Current Threshold in Charge       //Key 6
+     {"MCTD", CODE_MCTD},   //Maximum Current Threshold in Discharge    //Key 7
+
+     {"OVDC", CODE_OVDC},   //Over Voltage Delay of Clear               //Key 8
+     {"OVDL", CODE_OVDL},   //Over Voltage Delay of Latch               //Key 9
+     {"OVRD", CODE_OVRD},   //Over Voltage Reduction of Discharge       //Key 10
+     {"OVTC", CODE_OVTC},   //Over Voltage Threshold for Clear          //Key 11
+     {"OVTL", CODE_OVTL},   //Over Voltage Threshold for Latch          //Key 12
+
+     {"UVDC", CODE_UVDC},   //Under Voltage Delay of Clear              //Key 13
+     {"UVDL", CODE_UVDL},   //Under Voltage Delay of Latch              //Key 14
+     {"UVRC", CODE_UVRC},   //Under Voltage Reduction of Charge         //Key 15
+     {"UVTC", CODE_UVTC},   //Under Voltage Threshold for Clear         //Key 16
+     {"UVTL", CODE_UVTL},   //Under Voltage Threshold for Latch         //Key 17
 };
 
 #pragma PERSISTENT(ParamList_Q8_LUL);
 static Param_Q8_LUL_s ParamList_Q8_LUL[]=
 {
-     {_Q8(0.0), _Q8(0.0), _Q8(1.0), _Q8(32.0)},     //OVDC
-     {_Q8(0.0), _Q8(0.0), _Q8(3.3), _Q8(4.7)},      //OVTC
-     {_Q8(0.0), _Q8(0.0), _Q8(3.4), _Q8(4.8)},      //OVTL
+     {_Q8(0.0), _Q8(0.0), _Q8(3.4), _Q8(4.8)},      //OVTL Index 0
+     {_Q8(0.0), _Q8(0.0), _Q8(3.3), _Q8(4.7)},      //OVTC Index 1
+     {_Q8(0.0), _Q8(0.0), _Q8(1.0), _Q8(32.0)},     //OVDC Index 2
 
-     {_Q8(0.0), _Q8(0.0), _Q8(1.0), _Q8(32.0)},     //UVDC
-     {_Q8(0.0), _Q8(0.0), _Q8(2.5), _Q8(3.2)},      //UVTC
-     {_Q8(0.0), _Q8(0.0), _Q8(2.4), _Q8(3.1)},      //UVTL
+     {_Q8(0.0), _Q8(0.0), _Q8(2.4), _Q8(3.1)},      //UVTL Index 3
+     {_Q8(0.0), _Q8(0.0), _Q8(2.5), _Q8(3.2)},      //UVTC Index 4
+     {_Q8(0.0), _Q8(0.0), _Q8(1.0), _Q8(32.0)},     //UVDC Index 5
 
-     //{_Q8(0.0), _Q8(0.0), _Q8(0.0), _Q8(0.0)},      //BCTD
-     //{_Q8(0.0), _Q8(0.0), _Q8(0.0), _Q8(0.0)},      //MCTD
-     //{_Q8(0.0), _Q8(0.0), _Q8(0.0), _Q8(0.0)},      //BCTC
-     //{_Q8(0.0), _Q8(0.0), _Q8(0.0), _Q8(0.0)},      //MCTC
+     {_Q8(0.0), _Q8(0.0), _Q8(5.0),  _Q8(20.0)},    //BCTD Index 6
+     {_Q8(0.0), _Q8(0.0), _Q8(1.00), _Q8(30.00)},   //BCDD Index 7
+     {_Q8(0.0), _Q8(0.0), _Q8(5.0),  _Q8(12.0)},    //MCTD Index 8
+     {_Q8(0.0), _Q8(0.0), _Q8(5.00), _Q8(100.00)},  //MCDD Index 9
+
+     {_Q8(0.0), _Q8(0.0), _Q8(4.00), _Q8(16.0)},    //BCTC Index 10
+     {_Q8(0.0), _Q8(0.0), _Q8(1.00), _Q8(30.00)},   //BCDC Index 11
+     {_Q8(0.0), _Q8(0.0), _Q8(2.00), _Q8(10.0)},    //MCTC Index 12
+     {_Q8(0.0), _Q8(0.0), _Q8(5.00), _Q8(100.00)},  //MCDC Index 13
 };
 
 //static Param_Q8_LUL_s TestQStruct = {"OVTL", _Q8(0.0), _Q8(0.0), _Q8(3.4), _Q8(4.8)};
@@ -130,17 +145,25 @@ static Param_UINT_4OPTS_s ParamList_UINT_4OPTS[]=
 
 paramResult_t ReadCFG(paramTarget_t target)
 {
-    paramResult_t result;
+    volatile paramResult_t result;
 
     switch(target)
     {
     case TARGET_FRAM_DFLT0:
         for (StreamIDX=0; StreamIDX<PARAMFILELEN; StreamIDX++)
-        {   result = ProcessNextChar(FRAM_DFLT0[StreamIDX]);   }
+        {
+            result = ProcessNextChar(FRAM_DFLT0[StreamIDX]);
+            if(result!=PASSED_PARAM)    //If parsing failed OR stopped
+            {   return result;  }       //leave this loop
+        }
         return result;
     case TARGET_FRAM_DFLT1:
         for (StreamIDX=0; StreamIDX<PARAMFILELEN; StreamIDX++)
-        {   result = ProcessNextChar(FRAM_DFLT1[StreamIDX]);   }
+        {
+            result = ProcessNextChar(FRAM_DFLT1[StreamIDX]);
+            if(result!=PASSED_PARAM)    //If parsing failed OR stopped
+            {   return result;  }       //leave this loop
+        }
         return result;
     }
     return FAILED_NULL;
@@ -184,10 +207,9 @@ paramResult_t ProcessNextChar(char data)
         if(data>=0x41 && data<=0x5A)        //Is character a Capital Alpha?
         {   paramBuf[0]=data;               //Then put it in the param name buffer
             parseState=PSTEP_2ND_PARCHAR;   //Go to the next character in next call
-            return PASSED_NOCHECK;      }
+            return PASSED_PARAM;      }
         else if(data==0x03)
-        {   StreamIDX=PARAMFILELEN;
-            return PASSED_NOCHECK;      }
+        {   return PASSED_ETX;      }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
             return FAILED_PARAMNAME;    }
@@ -197,7 +219,7 @@ paramResult_t ProcessNextChar(char data)
         if(data>=0x41 && data<=0x5A)        //Is character a Capital Alpha?
         {   paramBuf[1]=data;               //Then put it in the param name buffer
             parseState=PSTEP_3RD_PARCHAR;   //Go to the next character in next call
-            return PASSED_NOCHECK;      }
+            return PASSED_PARAM;      }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
             return FAILED_PARAMNAME;    }
@@ -207,7 +229,7 @@ paramResult_t ProcessNextChar(char data)
         if(data>=0x41 && data<=0x5A)        //Is character a Capital Alpha?
         {   paramBuf[2]=data;               //Then put it in the param name buffer
             parseState=PSTEP_4TH_PARCHAR;   //Go to the next character in next call
-            return PASSED_NOCHECK;      }
+            return PASSED_PARAM;      }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
             return FAILED_PARAMNAME;    }
@@ -217,7 +239,7 @@ paramResult_t ProcessNextChar(char data)
         if(data>=0x41 && data<=0x5A)        //Is character a Capital Alpha?
         {   paramBuf[3]=data;               //Then put it in the param name buffer
             parseState=PSTEP_EQUALS;        //Go to the next character in next call
-            return PASSED_NOCHECK;      }
+            return PASSED_PARAM;      }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
             return FAILED_PARAMNAME;    }
@@ -230,7 +252,7 @@ paramResult_t ProcessNextChar(char data)
             return LookupParamKey();    }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
-            return FAILED_EQUALSCHAR;    }
+            return FAILED_PARAMEQUALS;    }
 
     //------------------------------------------------------------------------------------------
     /*case PSTEP_VALCHAR:
@@ -260,17 +282,17 @@ paramResult_t ProcessNextChar(char data)
         if((data>=0x30 && data<=0x39) || data==0x2E)    //Is character '1' through '9' or '.'?
         {   valueBuf[0]=data;
             parseState=PSTEP_2ND_VALCHAR;
-            return PASSED_NOCHECK;       }
+            return PASSED_PARAM;       }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
-            return FAILED_VALUEENTRY;    }
+            return FAILED_PARAMVALUE;    }
 
     //------------------------------------------------------------------------------------------
     case PSTEP_2ND_VALCHAR:
         if((data>=0x30 && data<=0x39) || data==0x2E)    //Is character '1' through '9' or '.'?
         {   valueBuf[1]=data;
             parseState=PSTEP_3RD_VALCHAR;
-            return PASSED_NOCHECK;      }
+            return PASSED_PARAM;      }
         else if(data==0x3B)                 //Is the character a';' delimiter?
         {   valueBuf[1]=0x00;               //Terminate the string with null char
             parseState=PSTEP_SPACE;         //Found the ';' delimiter early, jump to space char
@@ -278,14 +300,14 @@ paramResult_t ProcessNextChar(char data)
         }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
-            return FAILED_VALUEENTRY;   }
+            return FAILED_PARAMVALUE;   }
 
     //------------------------------------------------------------------------------------------
     case PSTEP_3RD_VALCHAR:
         if((data>=0x30 && data<=0x39) || data==0x2E)    //Is character '1' through '9' or '.'?
         {   valueBuf[2]=data;
             parseState=PSTEP_4TH_VALCHAR;
-            return PASSED_NOCHECK;      }
+            return PASSED_PARAM;      }
         else if(data==0x3B)                 //Is the character a';' delimiter?
         {   valueBuf[2]=0x00;               //Terminate the string with null char
             parseState=PSTEP_SPACE;         //Found the ';' delimiter early, jump to space char
@@ -293,14 +315,14 @@ paramResult_t ProcessNextChar(char data)
         }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
-            return FAILED_VALUEENTRY;   }
+            return FAILED_PARAMVALUE;   }
 
     //------------------------------------------------------------------------------------------
     case PSTEP_4TH_VALCHAR:
         if((data>=0x30 && data<=0x39) || data==0x2E)    //Is character '1' through '9' or '.'?
         {   valueBuf[3]=data;
             parseState=PSTEP_5TH_VALCHAR;
-            return PASSED_NOCHECK;      }
+            return PASSED_PARAM;      }
         else if(data==0x3B)                 //Is the character a';' delimiter?
         {   valueBuf[3]=0x00;               //Terminate the string with null char
             parseState=PSTEP_SPACE;         //Found the ';' delimiter early, jump to space char
@@ -308,22 +330,22 @@ paramResult_t ProcessNextChar(char data)
         }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
-            return FAILED_VALUEENTRY;   }
+            return FAILED_PARAMVALUE;   }
 
     //------------------------------------------------------------------------------------------
     case PSTEP_5TH_VALCHAR:
         if((data>=0x30 && data<=0x39) || data==0x2E)    //Is character '1' through '9' or '.'?
         {   valueBuf[4]=data;
             parseState=PSTEP_DELIM;
-            return PASSED_NOCHECK;      }
-        if(data==0x3B)                 //Is the character a';' delimiter?
+            return PASSED_PARAM;      }
+        if(data==0x3B)                      //Is the character a';' delimiter?
         {   valueBuf[4]=0x00;               //Terminate the string with null char
             parseState=PSTEP_SPACE;         //Found the ';' delimiter early, jump to space char
             return CheckParameter((paramCode_t)codeBuf);    //Check the param against validation data
         }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
-            return FAILED_VALUEENTRY;   }
+            return FAILED_PARAMVALUE;   }
 
     //------------------------------------------------------------------------------------------
     case PSTEP_DELIM:
@@ -335,27 +357,26 @@ paramResult_t ProcessNextChar(char data)
         }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
-            return FAILED_VALUEENTRY;   }
+            return FAILED_PARAMDELIM;   }
 
     //------------------------------------------------------------------------------------------
     case PSTEP_SPACE:
         if(data==0x20)                      //Is the character a ' ' (Space)?
         {
             parseState=PSTEP_1ST_PARCHAR;   //Space is there, ok
-            return PASSED_NOCHECK;      }
+            return PASSED_PARAM;      }
         else if(data==0x03)
-        {   StreamIDX=PARAMFILELEN;
-            return PASSED_NOCHECK;      }
+        {   return PASSED_ETX;      }
         if(data>=0x41 && data<=0x5A)        //Is character a Capital Alpha? (missed the space)
         {   paramBuf[0]=data;               //Then put it in the param name buffer
             parseState=PSTEP_2ND_PARCHAR;   //Go to the next character in next call
-            return PASSED_NOCHECK;      }
+            return PASSED_PARAM;      }
         else
         {   parseState=PSTEP_1ST_PARCHAR;   //Reinit state for another attempt
-            return FAILED_PARAMNAME;    }
+            return FAILED_PARAMDELIM;    }
 
     }
-    return PASSED_NOCHECK;
+    return PASSED_PARAM;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -374,7 +395,7 @@ paramResult_t LookupParamKey()
         {
             codeBuf=listIndex;
             //typeBuf=ParamLookup[listIndex].Type;
-            return PASSED_NOCHECK;
+            return PASSED_PARAM;
         }
     }
 
@@ -388,8 +409,34 @@ paramResult_t CheckParameter(paramCode_t code)
 
     switch(code)
     {
+    case CODE_BCDC:
+        index = 11;
+        return CheckParam_Q8_LUL(index);
+    case CODE_BCDD:
+        index = 7;
+        return CheckParam_Q8_LUL(index);
+    case CODE_BCTC:
+        index = 10;
+        return CheckParam_Q8_LUL(index);
+    case CODE_BCTD:
+        index = 6;
+        return CheckParam_Q8_LUL(index);
+
+    case CODE_MCDC:
+        index = 13;
+        return CheckParam_Q8_LUL(index);
+    case CODE_MCDD:
+        index = 9;
+        return CheckParam_Q8_LUL(index);
+    case CODE_MCTC:
+        index = 12;
+        return CheckParam_Q8_LUL(index);
+    case CODE_MCTD:
+        index = 8;
+        return CheckParam_Q8_LUL(index);
+
     case CODE_OVDC:
-        index = 0;
+        index = 2;
         return CheckParam_Q8_LUL(index);
     case CODE_OVDL:
         index = 0;
@@ -401,11 +448,11 @@ paramResult_t CheckParameter(paramCode_t code)
         index = 1;
         return CheckParam_Q8_LUL(index);
     case CODE_OVTL:
-        index = 2;
+        index = 0;
         return CheckParam_Q8_LUL(index);
 
     case CODE_UVDC:
-        index = 3;
+        index = 5;
         return CheckParam_Q8_LUL(index);
     case CODE_UVDL:
         index = 1;
@@ -417,11 +464,11 @@ paramResult_t CheckParameter(paramCode_t code)
         index = 4;
         return CheckParam_Q8_LUL(index);
     case CODE_UVTL:
-        index = 5;
+        index = 3;
         return CheckParam_Q8_LUL(index);
 
     default:
-        return FAILED_PARAMTYPEMM;
+        return FAILED_PARAMVALID;
     }
 }
 
@@ -433,9 +480,9 @@ paramResult_t CheckParam_Q8_LUL(unsigned int index)
     volatile _q8 LLIM = ParamList_Q8_LUL[index].L_Lim;
     volatile _q8 ULIM = ParamList_Q8_LUL[index].U_Lim;
     if(Test>LLIM && Test<ULIM)
-    {   return PASSED_CHECKED;  }
+    {   return PASSED_PARAM;  }
     else
-    {   return FAILED_VALUELIM; }
+    {   return FAILED_PARAMVALID; }
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -446,9 +493,9 @@ paramResult_t CheckParam_UINT_LUL(unsigned int index)
     volatile unsigned int LLIM = ParamList_UINT_LUL[index].L_Lim;
     volatile unsigned int ULIM = ParamList_UINT_LUL[index].U_Lim;
     if(Test>LLIM && Test<ULIM)
-    {   return PASSED_CHECKED;  }
+    {   return PASSED_PARAM;  }
     else
-    {   return FAILED_VALUELIM; }
+    {   return FAILED_PARAMVALID; }
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -461,9 +508,9 @@ paramResult_t CheckParam_UINT_4OPTS(unsigned int index)
     {
         if(Test==ParamList_UINT_4OPTS[index].Options[index2])
         {   ParamList_UINT_4OPTS[index].Proposed = index2;
-            return PASSED_CHECKED;                              }
+            return PASSED_PARAM;                              }
     }
-    return FAILED_PARAMTYPEMM;
+    return FAILED_PARAMVALID;
 }
 
 //----------------------------------------------------------------------------------------------------
