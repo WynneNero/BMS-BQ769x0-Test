@@ -43,12 +43,20 @@ typedef enum
     CODE_MCTC,
     CODE_MCTD,
 
+    CODE_OCDD,
+    CODE_OCTD,
+
     //OVPF (Over Voltage Protection Feature):
     CODE_OVDC,  //Over Voltage Delay to Clear
     CODE_OVDL,  //Over Voltage Delay to Latch
     CODE_OVRD,  //Over Voltage Reduction of Discharge
     CODE_OVTC,  //Over Voltage Threshold for Clear
     CODE_OVTL,  //Over Voltage Threshold for Latch
+
+    CODE_SCDD,
+    CODE_SCTD,
+
+    CODE_SRRS,
 
     //UVPF (Under Voltage Protection Feature):
     CODE_UVDC,  //Under Voltage Threshold Clear
@@ -156,8 +164,40 @@ typedef struct
 {
     unsigned int Proposed;
     unsigned int Adopted;
+    const unsigned int Options[2];
+}Param_UINT_2OPTS_s;
+
+//----------------------------------------------------------------------------------------------------
+typedef struct
+{
+    unsigned int Proposed;
+    unsigned int Adopted;
     const unsigned int Options[4];
 }Param_UINT_4OPTS_s;
+
+//----------------------------------------------------------------------------------------------------
+typedef struct
+{
+    unsigned int Proposed;
+    unsigned int Adopted;
+    const unsigned int Options[8];
+}Param_UINT_8OPTS_s;
+
+//----------------------------------------------------------------------------------------------------
+typedef struct
+{
+    unsigned int Proposed;
+    unsigned int Adopted;
+    const _q8 Options[8];
+}Param_Q8_8OPTS_s;
+
+//----------------------------------------------------------------------------------------------------
+typedef struct
+{
+    unsigned int Proposed;
+    unsigned int Adopted;
+    const _q8 Options[16];
+}Param_Q8_16OPTS_s;
 
 /*----------------------------------------------------------------------------------------------------
 typedef struct
@@ -174,24 +214,6 @@ typedef struct
     unsigned int Adopted;
     const unsigned int Options[6]; //MR, 3X, 4X, 5X, 7X, 10X
 }Param_UINT_TOPTS_s;*/
-
-//----------------------------------------------------------------------------------------------------
-typedef struct
-{
-    unsigned int Proposed;
-    unsigned int Adopted;
-    const unsigned int Options[8];
-}Param_UINT_8OPTS_s;
-
-//----------------------------------------------------------------------------------------------------
-typedef struct
-{
-    unsigned int Proposed;
-    unsigned int Adopted;
-    const unsigned int Options[16];
-}Param_UINT_16OPTS_s;
-
-
 
 //----------------------------------------------------------------------------------------------------
 //FUNCTION PROTOTYPES
@@ -213,8 +235,20 @@ paramResult_t AdoptParam_Q8_LUL(unsigned int index);
 paramResult_t CheckParam_UINT_LUL(unsigned int index);
 paramResult_t AdoptParam_UINT_LUL(unsigned int index);
 
+paramResult_t CheckParam_UINT_2OPTS(unsigned int index);
+paramResult_t AdoptParam_UINT_2OPTS(unsigned int index);
+
 paramResult_t CheckParam_UINT_4OPTS(unsigned int index);
 paramResult_t AdoptParam_UINT_4OPTS(unsigned int index);
+
+paramResult_t CheckParam_UINT_8OPTS(unsigned int index);
+paramResult_t AdoptParam_UINT_8OPTS(unsigned int index);
+
+paramResult_t CheckParam_Q8_8OPTS(unsigned int index);
+paramResult_t AdoptParam_Q8_8OPTS(unsigned int index);
+
+paramResult_t CheckParam_Q8_16OPTS(unsigned int index);
+paramResult_t AdoptParam_Q8_16OPTS(unsigned int index);
 
 paramResult_t CheckParam_BOOL(unsigned int index);
 paramResult_t AdoptParam_BOOL(unsigned int index);

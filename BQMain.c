@@ -2,10 +2,10 @@
  * //---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//
  * Project: BMS-LT Controller
  * Title: BQMain.c
- * Authors: Nathaniel VerLee, Matthew Pennock, 2020-2021
- * Contributors: Ryan Heacock, Kurt Snieckus, Matthew Pennock, 2020-2021
+ * Authors: Nathaniel VerLee, Matthew Pennock, 2020-2022
+ * Contributors: Ryan Heacock, Kurt Snieckus, Matthew Pennock, 2020-2022
  *
- * This file deals will all high level program flow control and systemn level interrupts.
+ * This file deals will all high level program flow control and system level interrupts.
  * //---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//---//
 ----------------------------------------------------------------------------------------------------*/
 
@@ -420,5 +420,3 @@ __interrupt void TIMER0_B1_ISR(void)
             break;
     }
 }
-
-
