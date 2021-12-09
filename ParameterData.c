@@ -598,6 +598,11 @@ paramResult_t CheckParameter(paramCode_t code)
     }
 }
 
+paramResult_t AdoptParameters(paramCode_t code)
+{
+    return PASSED_PARAM;
+}
+
 //----------------------------------------------------------------------------------------------------
 //Validation of Q8 Parameters with Lower and Upper Limit
 paramResult_t CheckParam_Q8_LUL(unsigned int index)

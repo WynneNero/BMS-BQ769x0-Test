@@ -219,6 +219,7 @@ typedef struct
 //FUNCTION PROTOTYPES
 
 paramResult_t ReadCFG(paramTarget_t target);
+paramResult_t AdoptProposedParams();
 
 paramResult_t ProcessNextChar(char data);
 paramResult_t LookupParamKey();

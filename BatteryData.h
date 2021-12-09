@@ -26,6 +26,10 @@
 //------------------------------------------------------------------------------------------
 // Initializations and Checks
 void Init_BMSConfig(void);
+uint8_t Compose_Protect1();
+uint8_t Compose_Protect2();
+uint8_t Compose_Protect3();
+
 void Init_BMSProtect(void);
 bool Check_BMSConfig(void);
 bool Check_BMSProtect(void);

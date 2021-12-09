@@ -36,6 +36,19 @@ const bool CellActive[] = {true, true, true, false, true, true, true, true, fals
 
 //----------------------------------------------------------------------------------------------------
 // Variables
+static uint8_t SRRS_BIT;
+static uint8_t SCTD_BITS;
+static uint8_t SCDD_BITS;
+static uint8_t Config_Protect1;
+
+static uint8_t OCTD_BITS;
+static uint8_t OCDD_BITS;
+static uint8_t Config_Protect2;
+
+static uint8_t OVDD_BITS;
+static uint8_t UVDD_BITS;
+static uint8_t Config_Protect3;
+
 unsigned char StatReg;
 unsigned int CellADCVals[15];
 unsigned int TempADCVals[3];
@@ -114,8 +127,6 @@ void Clear_CCReady(void)
     I2CTXBuf[0]=BIT7;
     I2C_Write(I2C_BQ769xxADDR, REG_SYS_STAT, 1);     //Clear the System Status Register
 }
-
-
 
 //----------------------------------------------------------------------------------------------------
 bool GetBit_CCReady(void)
